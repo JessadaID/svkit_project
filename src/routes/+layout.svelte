@@ -1,6 +1,6 @@
 
-<nav>
-	<a href="/">home</a>
+<nav class="p-5 bg-amber-300 w-full shadow-lg">
+	<a href="/" >โครงงาน/วิจัย</a>
 </nav>
 
 <div class="container">
@@ -8,7 +8,7 @@
 </div>
 
 <footer>
-    Footer by Jessada
+    Create at 30/11/2567
 </footer>
 
 <style>
