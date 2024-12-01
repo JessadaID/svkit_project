@@ -1,19 +1,8 @@
 
 <nav class="p-5 bg-amber-300 w-full shadow-lg">
-	<a href="/" >โครงงาน/วิจัย</a>
+	<a href="/" ><b>โครงงาน/วิจัย</b></a>
 </nav>
 
-<div class="container">
+<div class="container p-5">
     <slot />
 </div>
-
-<footer>
-    Create at 30/11/2567
-</footer>
-
-<style>
-    .container{
-        padding: 50px;
-        border: 1px solid black;
-    }
-</style>
