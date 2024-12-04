@@ -95,7 +95,7 @@
         {/each}
         <b>ที่มาและปัญหา </b>
         <p style="white-space: pre-wrap;">{project.project_problem}</p>
-        {#if role === "admin" || email === project.email}
+        {#if (role === "admin" || email === project.email) && email != null}
           <button
             class="absolute top-2 right-2 bg-amber-500 text-white px-4 py-2 rounded shadow hover:bg-blue-600"
             on:click={goToEditPage}
