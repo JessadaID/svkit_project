@@ -30,6 +30,8 @@
       });
 
       alert(`สมัครสมาชิกสำเร็จ! ยินดีต้อนรับ ${user.email}`);
+      localStorage.setItem("email", user.email);
+      localStorage.setItem("role", role);
       // รีเซ็ตฟอร์ม
       email = "";
       password = "";
