@@ -9,7 +9,13 @@
   let project_problem = "";
   let comment = "";
   let status = "wait";
+  let email = "";
+  let isLoading = false;
 
+  // ดึง email จาก localStorage เมื่อ component โหลด
+  if (typeof window !== "undefined") {
+    email = localStorage.getItem("email");
+  }
 
   let members = [""]; // ตัวแปรสำหรับเก็บสมาชิกที่เพิ่มเข้ามา
   
@@ -48,7 +54,7 @@
   
   async function handleSubmit(event) {
     event.preventDefault();
-    alert("โปรดรอสักครู่ กำลังเพิ่มข้อมูล...");
+    isLoading = true;
     try {
       // เพิ่มข้อมูลไปยัง Firestore
       const docRef = await addDoc(collection(db, "project-approve"), {
@@ -60,11 +66,9 @@
         project_problem,
         comment,
         status,
+        email,
       });
-
-      alert(`เพิ่มข้อมูลสำเร็จ! Document ID: ${docRef.id}`);
-      console.log("Document written with ID: ", docRef.id);
-
+      alert(`เพิ่มข้อมูลสำเร็จ!`);
       // รีเซ็ตฟอร์ม
       term = "";
       project_name_th = "";
@@ -77,9 +81,12 @@
     } catch (error) {
       console.error("Error adding document: ", error);
       alert("เกิดข้อผิดพลาด: " + error.message);
+    } finally {
+      isLoading = false; // โหลดเสร็จแล้ว
     }
   }
 </script>
+
 <div class="md:m-5 md:p-5 flex justify-center items-center">
     <form
     on:submit={handleSubmit}
@@ -201,8 +208,11 @@
         <button
           type="submit"
           class="rounded bg-blue-500 hover:bg-blue-700 text-white px-6 py-2 shadow-md w-full"
+          disabled={isLoading}
+
         >
-          ส่งข้อมูล
+        {isLoading ? "Loading..." : "ส่งข้อมูล"}
+
         </button>
       </div>
   
