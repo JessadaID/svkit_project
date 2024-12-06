@@ -20,7 +20,9 @@
     }
   }
 </script>
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10 m-5">
+<div class="m-5"><a href="/" class="hover:underline">หน้าแรก</a> > <b>แบบเสนอโครงงาน</b></div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6  m-5">
+
   <!-- กรอกแบบฟอร์ม -->
   <button
     on:click={() => handleNavigation('/cpe02/form')}

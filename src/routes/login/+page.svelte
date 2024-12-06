@@ -28,7 +28,7 @@
         // เก็บ email ลงใน localStorage
         localStorage.setItem("email", user.email);
         localStorage.setItem("role", role);
-
+        
         goto("/cpe02");
       } else {
         alert("ไม่พบข้อมูลผู้ใช้ใน Firestore");
@@ -115,7 +115,7 @@
       </button>
     {/if}
     <p class="text-center text-sm text-gray-500 mt-4">
-      ยังไม่มีบัญชีหรอ ? <a href="/login" class="text-blue-500 hover:underline"
+      ยังไม่มีบัญชีหรอ ? <a href="/signup" class="text-blue-500 hover:underline"
         >Sign Up</a
       >
     </p>

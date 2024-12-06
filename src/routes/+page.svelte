@@ -1,19 +1,8 @@
-<script>
-  // export let data;
-</script>
-
-<div class="container mx-auto p-6">
-  <!-- 
-  <ul>
-    {#each data.blogs as blog}
-      <li class="mb-2">
-        <span class="font-bold">{blog.id}</span>: {blog.name}
-        <a href="/blog/{blog.id}" class="text-blue-600 hover:underline ml-2">View</a>
-      </li>
-    {/each}
-  </ul> 
-  -->
-
+<div class="mt-5 mx-5">
+  <b>หน้าแรก</b>
+</div>
+<div class="container mx-auto px-6">
+ 
   <section class="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-4 mt-6">
     <a
       href="/cpe02"

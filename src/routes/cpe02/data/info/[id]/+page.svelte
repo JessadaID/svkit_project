@@ -78,8 +78,13 @@
 {#if isNotFound}
   <h1>404 - Project Not Found</h1>
 {:else}
+
+{#if project}
+<div class="m-5"><a href="/" class="hover:underline">หน้าแรก</a> > <a href="/cpe02" class="hover:underline">แบบเสนอโครงงาน</a> > <a href="/cpe02/data" class="hover:underline">ข้อมูลแบบเสนอโครงงาน</a>  > <b>{project.project_name_th}</b></div>
+
   <div class="md:m-5 p-3 md:bg-gray-200 rounded md:shadow-lg relative">
-    {#if project}
+    
+    
       <!-- ตรวจสอบว่า projectData มีข้อมูล -->
       <div>
         <b>ชื่อเสนอโครงงาน </b>
@@ -111,10 +116,11 @@
           </button>
         {/if}
       </div>
+  </div>
+
     {:else}
       <p>กำลังโหลดข้อมูล...</p>
     {/if}
-  </div>
 {/if}
 
 <!-- แสดงฟอร์มถ้า isLoggedIn เป็น true 
