@@ -45,6 +45,7 @@
   }
 </script>
 <div class="flex justify-center items-center mt-24">
+
   <div class="p-8 bg-white shadow-md rounded-md w-full max-w-md ">
     <h1 class="text-2xl font-bold text-center mb-6 text-gray-800 ">สมัครมาชิก</h1>
 

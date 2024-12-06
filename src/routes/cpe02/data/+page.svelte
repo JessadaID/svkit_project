@@ -32,6 +32,7 @@
     });
   }
 </script>
+<div class="m-5"><a href="/" class="hover:underline">หน้าแรก</a> > <a href="/cpe02" class="hover:underline">แบบเสนอโครงงาน</a> > <b>ข้อมูลแบบเสนอโครงงาน</b></div>
 
 <nav class="m-5">
   <p>ค้นหาข้อมูล</p>
