@@ -118,7 +118,7 @@
 
 <!-- Hidden Menu -->
 <div
-  class={`space-y-2  p-4  md:hidden transition-all ${
+  class={`space-y-2  p-4  md:hidden transition-all   ${
     isMenuOpen ? "block" : "hidden"
   }`}
   style="background-color: #21618c;"

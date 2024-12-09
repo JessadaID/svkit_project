@@ -51,38 +51,38 @@
 
     <form on:submit|preventDefault={signup} class="space-y-4">
       <div>
-        <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+        <label for="email" class="block text-sm font-medium text-gray-700">อีเมล</label>
         <input
           id="email"
           type="email"
           bind:value={email}
           required
           class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-300"
-          placeholder="Enter your email"
+          placeholder="กรอกอีเมลของคุณ"
         />
       </div>
 
       <div>
-        <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+        <label for="password" class="block text-sm font-medium text-gray-700">รหัสผ่าน</label>
         <input
           id="password"
           type="password"
           bind:value={password}
           required
           class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-300"
-          placeholder="Enter your password"
+          placeholder="กรอกรหัสผ่านของคุณ"
         />
       </div>
 
       <div>
-        <label for="confirmPassword" class="block text-sm font-medium text-gray-700">Confirm Password</label>
+        <label for="confirmPassword" class="block text-sm font-medium text-gray-700">กรอกรหัสผ่านอีกครั้ง</label>
         <input
           id="confirmPassword"
           type="password"
           bind:value={confirmPassword}
           required
           class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-300"
-          placeholder="Confirm your password"
+          placeholder="กรอกรหัสผ่านของคุณอีกครั้ง"
         />
       </div>
 
