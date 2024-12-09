@@ -7,11 +7,25 @@
   let project_name_en = "";
   let adviser = [""];
   let project_problem = "";
-  let comment = "";
+  let comments = "";
   let status = "wait";
   let email = "";
   let isLoading = false;
-
+  let topics = {
+    topic1: false,
+    topic2: false,
+    topic3: false,
+    topic4: false,
+    topic5: false,
+    topic6: false,
+    topic7: false,
+    topic8: false,
+    topic9: false,
+    topic10: false,
+    topic11: false,
+    topic12: false,
+    topic13: false,
+  };
   // ดึง email จาก localStorage เมื่อ component โหลด
   if (typeof window !== "undefined") {
     email = localStorage.getItem("email");
@@ -64,9 +78,10 @@
         members,
         adviser,
         project_problem,
-        comment,
+        comments,
         status,
         email,
+        topics,
       });
       alert(`เพิ่มข้อมูลสำเร็จ!`);
       // รีเซ็ตฟอร์ม
@@ -76,7 +91,6 @@
       members = [];
       adviser = [];
       project_problem = "";
-      comment = "";
       status = "";
     } catch (error) {
       console.error("Error adding document: ", error);
@@ -165,7 +179,7 @@
           bind:value={adviser}
         >
           <option value="ผู้ช่วยศาสตราจารย์ อนัน ทับเกิด"
-            >ผู้ช่วยศาสตราจารย์ อนัน ทับเกิด</option
+            >ผู้ช่วยศาสตราจารย์ อนันท์ ทับเกิด</option
           >
           <option value="นายกิตตินันท์ น้อยมณี">นายกิตตินันท์ น้อยมณี</option>
           <option value="ผู้ช่วยศาสตราจารย์ ขวัญชัย เอื้อวิริยานุกูล"

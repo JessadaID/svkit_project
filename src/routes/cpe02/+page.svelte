@@ -40,4 +40,13 @@
     >
     ข้อมูลแบบเสนอโครงงาน
   </button>
+
+  <!-- ขั้นตอนแบบเสนอโครงงาน -->
+  <button
+    on:click={() => handleNavigation('/cpe02/step')}
+    class="block border rounded shadow-lg p-5 text-white text-center transform hover:scale-105 transition-transform duration-200"
+    style="background-color:#4F709C"
+    >
+    ขั้นตอนแบบเสนอโครงงาน
+  </button>
 </div>
