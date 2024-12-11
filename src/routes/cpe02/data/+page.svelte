@@ -31,6 +31,25 @@
       return matchesSearchQuery && matchesStatus;
     });
   }
+
+
+  // หาค่า key ของ topics ที่เป็น true และตัวสุดท้าย
+  function getLastTrueTopic(topics) {
+  const lastTrue = Object.entries(topics)
+    .filter(([key, value]) => value) // กรองเฉพาะ key ที่ value เป็น true
+    .pop(); // ดึงตัวสุดท้าย
+
+  if (!lastTrue) {
+    return 'ยังไม่มีความคืบหน้า'; // ส่งข้อความหากไม่มีค่า true
+  }
+
+  // แปลง key เช่น topic1 => หัวข้อที่ 1
+  const transformedKey = lastTrue[0].replace('topic', 'หัวข้อที่ ');
+  return transformedKey;
+}
+
+
+
 </script>
 <div class="m-5"><a href="/" class="hover:underline">หน้าแรก</a> > <a href="/cpe02" class="hover:underline">แบบเสนอโครงงาน</a> > <b>ข้อมูลแบบเสนอโครงงาน</b></div>
 
@@ -123,7 +142,7 @@
                 </p>
             </td><td class="p-4 border-b border-slate-200">
                 <p class="block text-sm text-slate-800">
-                    ข้อที่ 4
+                    {getLastTrueTopic(item.topics)}
                 </p>
             </td><td class="p-4 border-b border-slate-200">
                 
