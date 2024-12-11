@@ -13,15 +13,15 @@
   let isLoading = true;
   let can_edit = false;
   let topics = {
-    topic1: false,
-    topic2: false,
-    topic3: false,
-    topic4: false,
-    topic5: false,
-    topic6: false,
-    topic7: false,
-    topic8: false,
-    topic9: false,
+    topic01: false,
+    topic02: false,
+    topic03: false,
+    topic04: false,
+    topic05: false,
+    topic06: false,
+    topic07: false,
+    topic08: false,
+    topic09: false,
     topic10: false,
     topic11: false,
     topic12: false,
@@ -183,25 +183,25 @@
       <b>ความคืบหน้า</b>
       <div class="grid grid-cols-2">
         <div>
-          <input type="checkbox" id="topic1" bind:checked={topics.topic1} disabled={!can_edit} />
+          <input type="checkbox" id="topic1" bind:checked={topics.topic01} disabled={!can_edit}/>
           <label for="topic1"> หัวข้อที่ 1</label><br />
-          <input type="checkbox" id="topic2" bind:checked={topics.topic2} disabled={!can_edit} />
+          <input type="checkbox" id="topic2" bind:checked={topics.topic02} disabled={!can_edit}/>
           <label for="topic2"> หัวข้อที่ 2</label><br />
-          <input type="checkbox" id="topic3" bind:checked={topics.topic3} disabled={!can_edit} />
+          <input type="checkbox" id="topic3" bind:checked={topics.topic03} disabled={!can_edit} />
           <label for="topic3"> หัวข้อที่ 3</label><br />
-          <input type="checkbox" id="topic4" bind:checked={topics.topic4} disabled={!can_edit} />
+          <input type="checkbox" id="topic4" bind:checked={topics.topic04} disabled={!can_edit} />
           <label for="topic4"> หัวข้อที่ 4</label><br />
-          <input type="checkbox" id="topic5" bind:checked={topics.topic5} disabled={!can_edit} />
+          <input type="checkbox" id="topic5" bind:checked={topics.topic05} disabled={!can_edit} />
           <label for="topic5"> หัวข้อที่ 5</label><br />
-          <input type="checkbox" id="topic6" bind:checked={topics.topic6} disabled={!can_edit} />
+          <input type="checkbox" id="topic6" bind:checked={topics.topic06} disabled={!can_edit} />
           <label for="topic6"> หัวข้อที่ 6</label><br />
-          <input type="checkbox" id="topic7" bind:checked={topics.topic7} disabled={!can_edit} />
+          <input type="checkbox" id="topic7" bind:checked={topics.topic07} disabled={!can_edit} />
           <label for="topic7"> หัวข้อที่ 7</label><br />
         </div>
         <div>
-          <input type="checkbox" id="topic8" bind:checked={topics.topic8} disabled={!can_edit} />
+          <input type="checkbox" id="topic8" bind:checked={topics.topic08} disabled={!can_edit} />
           <label for="topic8"> หัวข้อที่ 8</label><br />
-          <input type="checkbox" id="topic9" bind:checked={topics.topic9} disabled={!can_edit} />
+          <input type="checkbox" id="topic9" bind:checked={topics.topic09} disabled={!can_edit} />
           <label for="topic9"> หัวข้อที่ 9</label><br />
           <input type="checkbox" id="topic10" bind:checked={topics.topic10} disabled={!can_edit} />
           <label for="topic10"> หัวข้อที่ 10</label><br />
