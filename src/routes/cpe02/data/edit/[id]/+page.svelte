@@ -186,8 +186,8 @@
             size="4"
             bind:value={project.adviser}
           >
-            <option value="ผู้ช่วยศาสตราจารย์ อนัน ทับเกิด"
-              >ผู้ช่วยศาสตราจารย์ อนัน ทับเกิด</option
+            <option value="ผู้ช่วยศาสตราจารย์ อนันท์ ทับเกิด"
+              >ผู้ช่วยศาสตราจารย์ อนันท์ ทับเกิด</option
             >
             <option value="นายกิตตินันท์ น้อยมณี">นายกิตตินันท์ น้อยมณี</option>
             <option value="ผู้ช่วยศาสตราจารย์ ขวัญชัย เอื้อวิริยานุกูล"
@@ -208,6 +208,17 @@
           </select>
           <!--===============================================-->
 
+          <label for="email" class="block text-lg font-medium mt-3"
+          >ที่ปรึกษาภายนอก (ถ้ามี)
+        </label>
+        <input
+          type="text"
+          placeholder="ไม่บังคับ"
+          required
+          class="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+          bind:value={project.External_consultant}
+        />
+
           <label for="text" class="block text-lg font-medium mt-3"
             >ที่มาและความสำคัญของปัญหา
           </label>
@@ -217,7 +228,7 @@
             name="w3review"
             rows="10"
             cols="50"
-            class="w-full"
+            class="w-full p-2"
             bind:value={project.project_problem}
             on:keydown={handleTab}
             placeholder="เขียนที่มาและความสำคัญของปัญหา..."

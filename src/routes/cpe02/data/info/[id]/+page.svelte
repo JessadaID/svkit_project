@@ -2,7 +2,14 @@
   export let data; // รับข้อมูลที่ส่งมาจากหน้าอื่น (data.id)
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
-  import { doc, deleteDoc , getDoc , updateDoc } from "firebase/firestore";
+  import {
+    collection,
+    query,
+    where,
+    getDocs,
+    doc,
+    getDoc,
+  } from "firebase/firestore";
   import { db } from "$lib/firebase.js";
 
   let isLoggedIn = false;
@@ -12,58 +19,59 @@
   let role = "";
   let isLoading = true;
   let can_edit = false;
-  let topics = {
-    topic01: false,
-    topic02: false,
-    topic03: false,
-    topic04: false,
-    topic05: false,
-    topic06: false,
-    topic07: false,
-    topic08: false,
-    topic09: false,
-    topic10: false,
-    topic11: false,
-    topic12: false,
-    topic13: false,
-  };
+  let status = "";
+  let Task = [];
   let comments = "";
+  let visibleStates = [];
 
   if (typeof window !== "undefined") {
     email = localStorage.getItem("email");
     role = localStorage.getItem("role");
   }
-  if(role == "advisor"){
+  if (role == "advisor") {
     can_edit = true;
   }
+  // ฟังก์ชันดึงข้อมูลจาก Firebase
 
   onMount(async () => {
     try {
-      const docRef = doc(db, "project-approve", data.id);
-      const docSnap = await getDoc(docRef);
+      // --- ดึงข้อมูลจาก collection 'project-approve' ตาม ID ---
+      const projectRef = doc(db, "project-approve", data.id);
+      const projectSnap = await getDoc(projectRef);
 
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        topics = data.topics || topics; // อัปเดต `topics` จาก Firebase
-        comments = data.comments || ""; // อัปเดต `comments` จาก Firebase
+      if (projectSnap.exists()) {
+        project = projectSnap.data(); // เก็บข้อมูล project
       } else {
-        console.error("ไม่มีข้อมูลใน Firebase");
+        console.error("ไม่พบข้อมูลใน project-approve");
       }
+
+      // --- ดึงข้อมูลจาก collection 'Task' ที่มี term == '2/2567' ---
+      const taskQuery = query(
+        collection(db, "Task"), // ระบุ collection 'Task'
+        where("term", "==", project.term) // เงื่อนไขกรองเฉพาะ term == '2/2567'
+      );
+
+      const querySnapshot = await getDocs(taskQuery); // ดึงข้อมูลที่ตรงเงื่อนไข
+      Task = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })); // แปลงข้อมูลเป็น Array
+
+      // ตั้งค่าให้ visibleStates มีค่าเริ่มต้นเป็น false ตามจำนวน Task
+      visibleStates = Task.map(() => false);
     } catch (error) {
-      console.error("เกิดข้อผิดพลาดในการโหลดข้อมูล:", error);
+      console.error("เกิดข้อผิดพลาดในการดึงข้อมูล:", error);
     } finally {
-      isLoading = false; // ยุติการโหลดเมื่อดึงข้อมูลเสร็จ
+      isLoading = false; // หยุดสถานะการโหลด
     }
   });
 
+  /*
   async function saveData() {
     try {
       isLoading = true;
       const docRef = doc(db, "project-approve", data.id);
-
+      status = "improvement";
       const updatedData = {
-        topics,
         comments,
+        status,
       };
 
       await updateDoc(docRef, updatedData);
@@ -72,11 +80,10 @@
       console.error("เกิดข้อผิดพลาดในการบันทึกข้อมูล:", error);
       alert("เกิดข้อผิดพลาด กรุณาลองอีกครั้ง");
     } finally {
-        isLoading = false;
-      }
-  }
+      isLoading = false;
+    }
+  }*/
 
-  
   // ใช้ onMount เพื่อนำข้อมูลจาก localStorage
   onMount(() => {
     isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
@@ -130,6 +137,17 @@
       }
     }
   }
+
+  // ฟังก์ชัน toggle
+  function toggleTask(index) {
+    visibleStates[index] = !visibleStates[index];
+  }
+  function isOverdue(dueDate) {
+    const today = new Date(); // วันที่ปัจจุบัน
+    //console.log(today);
+    const due = new Date(dueDate); // วันที่กำหนดส่ง
+    return today > due; // คืนค่า true ถ้าเลยกำหนด
+  }
 </script>
 
 {#if isNotFound}
@@ -147,18 +165,21 @@
       class="md:m-5 p-3 md:bg-gray-200 rounded md:shadow-lg relative md:w-8/12"
     >
       <!-- ตรวจสอบว่า projectData มีข้อมูล -->
-      <b>ชื่อเสนอโครงงาน </b>
+      <b>1. ชื่อเสนอโครงงาน </b>
       <h1>&emsp;&emsp;{project.project_name_th} &emsp; (ไทย)</h1>
       <h1>&emsp;&emsp;{project.project_name_en} &emsp; (อังกฤษ)</h1>
-      <b>ชื่อผู้เสนอโครงงาน </b>
+      <b>2. ชื่อผู้เสนอโครงงาน </b>
       {#each project.members as member}
         <h1>&emsp;&emsp;{member}</h1>
       {/each}
-      <b>อาจารย์ที่ปรึกษาโครงงาน </b>
+      <b>3. อาจารย์ที่ปรึกษาโครงงาน </b>
       {#each project.adviser as advisor}
         <h1>&emsp;&emsp;{advisor}</h1>
       {/each}
-      <b>ที่มาและปัญหา </b>
+      {#if project.External_consultant != ""}
+        <h1>&emsp;&emsp;{project.External_consultant} (ที่ปรึกษาภายนอก)</h1>
+      {/if}
+      <b>4. ที่มาและปัญหา </b>
       <p style="white-space: pre-wrap;">{project.project_problem}</p>
       {#if (role === "admin" || email === project.email) && email != null}
         <div class="flex justify-around mt-5">
@@ -179,52 +200,62 @@
       {/if}
     </div>
 
-    <div class="md:m-5 p-3 md:bg-gray-200 rounded md:shadow-lg md:w-4/12 bg-gray-200">
-      <b>ความคืบหน้า</b>
-      <div class="grid grid-cols-2">
-        <div>
-          <input type="checkbox" id="topic1" bind:checked={topics.topic01} disabled={!can_edit}/>
-          <label for="topic1"> หัวข้อที่ 1</label><br />
-          <input type="checkbox" id="topic2" bind:checked={topics.topic02} disabled={!can_edit}/>
-          <label for="topic2"> หัวข้อที่ 2</label><br />
-          <input type="checkbox" id="topic3" bind:checked={topics.topic03} disabled={!can_edit} />
-          <label for="topic3"> หัวข้อที่ 3</label><br />
-          <input type="checkbox" id="topic4" bind:checked={topics.topic04} disabled={!can_edit} />
-          <label for="topic4"> หัวข้อที่ 4</label><br />
-          <input type="checkbox" id="topic5" bind:checked={topics.topic05} disabled={!can_edit} />
-          <label for="topic5"> หัวข้อที่ 5</label><br />
-          <input type="checkbox" id="topic6" bind:checked={topics.topic06} disabled={!can_edit} />
-          <label for="topic6"> หัวข้อที่ 6</label><br />
-          <input type="checkbox" id="topic7" bind:checked={topics.topic07} disabled={!can_edit} />
-          <label for="topic7"> หัวข้อที่ 7</label><br />
-        </div>
-        <div>
-          <input type="checkbox" id="topic8" bind:checked={topics.topic08} disabled={!can_edit} />
-          <label for="topic8"> หัวข้อที่ 8</label><br />
-          <input type="checkbox" id="topic9" bind:checked={topics.topic09} disabled={!can_edit} />
-          <label for="topic9"> หัวข้อที่ 9</label><br />
-          <input type="checkbox" id="topic10" bind:checked={topics.topic10} disabled={!can_edit} />
-          <label for="topic10"> หัวข้อที่ 10</label><br />
-          <input type="checkbox" id="topic11" bind:checked={topics.topic11} disabled={!can_edit} />
-          <label for="topic11"> หัวข้อที่ 11</label><br />
-          <input type="checkbox" id="topic12" bind:checked={topics.topic12} disabled={!can_edit} />
-          <label for="topic12"> หัวข้อที่ 12</label><br />
-          <input type="checkbox" id="topic13" bind:checked={topics.topic13} disabled={!can_edit} />
-          <label for="topic13"> หัวข้อที่ 13</label><br />
-        </div>
-      </div>
-      <div class="mt-5">
-        <b>ความคิดเห็นของอาจารย์</b>
-        <textarea
-          bind:value={comments}
-          class="w-full"
-          rows="5"
-          readonly={!can_edit}
-        ></textarea>
-        {#if role === "advisor"}
-          <button class="bg-red-500 w-full mt-5 p-2" on:click={saveData} disabled={isLoading}>
-            {isLoading ? "Loading..." : "ยืนยัน"}
-          </button>
+    <div
+      class="md:m-5 p-3 md:bg-gray-200 rounded md:shadow-lg md:w-4/12 bg-gray-200"
+    >
+      <b class="m-2">ความคืบหน้า เทอม : {project.term}</b>
+      <!-- UI -->
+      <div>
+        {#if isLoading != true}
+          {#if Task.length > 0}
+            {#each Task as task, index}
+              <div class="bg-slate-400 relative p-4 mb-4 rounded-md">
+                <h1><b>{task.title}</b></h1>
+                <p>{task.description}</p>
+
+                <!-- แสดงข้อความหากเกินกำหนด -->
+                {#if isOverdue(task.dueDate)}
+                  <p class="text-red-600 font-bold mt-2">เกินกำหนดส่งแล้ว!</p>
+                {/if}
+
+                <!-- ปุ่ม toggle -->
+                <button
+                  type="button"
+                  class="absolute top-0 right-0 bg-white p-2 m-2 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer"
+                  on:click={() => toggleTask(index)}
+                  aria-label="Toggle task visibility"
+                >
+                  {visibleStates[index] ? "▲" : "▼"}
+                </button>
+
+                <!-- เนื้อหาที่ toggle ได้ -->
+                {#if visibleStates[index]}
+                  <div class="mt-5 bg-gray-100 p-4 rounded-md">
+                    <b>ความคิดเห็นของอาจารย์</b>
+                    <textarea class="w-full p-2" rows="5" readonly={!can_edit}
+                      >{task.comments}</textarea
+                    >
+
+                    {#if role == "advisor"}
+                      <button class="bg-red-500 w-full mt-5 p-2 text-white">
+                        ยืนยัน
+                      </button>
+                    {/if}
+                  </div>
+                {/if}
+              </div>
+            {/each}
+          {:else}
+            <!-- แสดงข้อความเมื่อไม่มีข้อมูลใน Task -->
+            <div class="text-center bg-gray-200 p-5 rounded-md">
+              <h1 class="text-lg font-bold text-red-500">ไม่พบข้อมูล</h1>
+              <p>ไม่มีข้อมูลที่จะแสดงในขณะนี้</p>
+            </div>
+          {/if}
+        {:else}
+          <div class="text-center bg-gray-200 p-5 rounded-md">
+            <p>Loading...</p>
+          </div>
         {/if}
       </div>
     </div>
