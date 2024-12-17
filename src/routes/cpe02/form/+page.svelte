@@ -11,21 +11,7 @@
   let status = "wait";
   let email = "";
   let isLoading = false;
-  let topics = {
-    topic01: false,
-    topic02: false,
-    topic03: false,
-    topic04: false,
-    topic05: false,
-    topic06: false,
-    topic07: false,
-    topic08: false,
-    topic09: false,
-    topic10: false,
-    topic11: false,
-    topic12: false,
-    topic13: false,
-  };
+  let External_consultant = "";
   // ดึง email จาก localStorage เมื่อ component โหลด
   if (typeof window !== "undefined") {
     email = localStorage.getItem("email");
@@ -81,7 +67,7 @@
         comments,
         status,
         email,
-        topics,
+        External_consultant,
       });
       alert(`เพิ่มข้อมูลสำเร็จ!`);
       // รีเซ็ตฟอร์ม
@@ -92,6 +78,7 @@
       adviser = [];
       project_problem = "";
       status = "";
+      External_consultant = "";
     } catch (error) {
       console.error("Error adding document: ", error);
       alert("เกิดข้อผิดพลาด: " + error.message);
@@ -178,7 +165,7 @@
           size="4"
           bind:value={adviser}
         >
-          <option value="ผู้ช่วยศาสตราจารย์ อนัน ทับเกิด"
+          <option value="ผู้ช่วยศาสตราจารย์ อนันท์ ทับเกิด"
             >ผู้ช่วยศาสตราจารย์ อนันท์ ทับเกิด</option
           >
           <option value="นายกิตตินันท์ น้อยมณี">นายกิตตินันท์ น้อยมณี</option>
@@ -200,7 +187,16 @@
         </select>
         <!--===============================================-->
   
-  
+        <label for="email" class="block text-lg font-medium mt-3"
+          >ที่ปรึกษาภายนอก (ถ้ามี)
+        </label>
+        <input
+          type="text"
+          placeholder="ไม่บังคับ"
+          
+          class="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+          bind:value={External_consultant}
+        />
   
         <label for="text" class="block text-lg font-medium mt-3"
           >ที่มาและความสำคัญของปัญหา
@@ -211,7 +207,7 @@
           name="w3review"
           rows="10"
           cols="50"
-          class="w-full"
+          class="w-full p-2"
           bind:value={project_problem}
           on:keydown={handleTab}
           placeholder="เขียนที่มาและความสำคัญของปัญหา..."
