@@ -4,10 +4,28 @@
 
   import { goto } from "$app/navigation";
   import { onMount } from "svelte";
-
+  import { getCookie } from "cookies-next";
+  import { checkLoginStatus } from "../../../auth";
+  
   let searchQuery = ""; // ตัวแปรสำหรับเก็บค่าการค้นหา
   let project_status = "all"; // สถานะโปรเจค
   let role = "";
+  let email = "";
+  onMount(async () => {
+        const isUserLoggedIn = await checkLoginStatus(); // รอผลลัพธ์จาก checkLoginStatus
+
+        if (isUserLoggedIn) {
+            email = getCookie("email")  // หรือใช้ cookies ถ้าต้องการ
+            role = getCookie("role");
+            //console.log('User is logged in, Email:', email);
+        } else {
+            console.log('User not logged in. Redirecting to login...');
+            // ถ้าไม่ได้ล็อกอิน เปลี่ยนเส้นทางไปหน้า Login
+            goto("/login");
+        }
+    });
+
+
 
   function setdata(event, item) {
     event.preventDefault(); // ป้องกันการเปลี่ยนเส้นทาง URL โดยอัตโนมัติ
@@ -19,10 +37,6 @@
     goto(`/cpe02/data/info/${item.id}`);
   }
 
-  onMount(() => {
-    role = localStorage.getItem("role");
-    //console.log(role);
-  });
   // ฟังก์ชันสำหรับกรองข้อมูล
   function filterData() {
     return data.data.filter((item) => {

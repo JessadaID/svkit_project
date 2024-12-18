@@ -3,6 +3,8 @@
   import { createUserWithEmailAndPassword } from "firebase/auth";
   import { doc, setDoc } from "firebase/firestore";
   import { goto } from "$app/navigation";
+  import { setLoginCookies } from '../../auth';
+
 
   let email = "";
   let password = "";
@@ -10,39 +12,47 @@
   let role = "user"; // Role เริ่มต้น (สามารถปรับเปลี่ยนได้)
   let isLoading = false;
 
-  async function signup() {
+  
+async function signup() {
     try {
-      isLoading = true;
-      if (password !== confirmPassword) {
-        alert("รหัสผ่านไม่ตรงกัน");
-        return;
-      }
+        isLoading = true;
 
-      // สร้างผู้ใช้ใน Firebase Authentication
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
+        // ตรวจสอบว่ารหัสผ่านและยืนยันรหัสผ่านตรงกันหรือไม่
+        if (password !== confirmPassword) {
+            alert("รหัสผ่านไม่ตรงกัน");
+            return;
+        }
 
-      // บันทึกข้อมูลใน Firestore
-      const userDocRef = doc(db, "users", user.uid);
-      await setDoc(userDocRef, {
-        email: user.email,
-        role: role, // บันทึก Role ของผู้ใช้
-      });
+        // สร้างผู้ใช้ใน Firebase Authentication
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
 
-      alert(`สมัครสมาชิกสำเร็จ! ยินดีต้อนรับ ${user.email}`);
-      localStorage.setItem("email", user.email);
-      localStorage.setItem("role", role);
-      // รีเซ็ตฟอร์ม
-      email = "";
-      password = "";
-      confirmPassword = "";
-      goto('/cpe02');
+        // บันทึกข้อมูลผู้ใช้ลงใน Firestore
+        const userDocRef = doc(db, "users", user.uid);
+        await setDoc(userDocRef, {
+            email: user.email,
+            role: role, // บันทึก Role ของผู้ใช้
+        });
+
+        // เก็บข้อมูลใน Cookies
+        setLoginCookies(email, role);
+
+        // แจ้งเตือนผู้ใช้
+        alert(`สมัครสมาชิกสำเร็จ! ยินดีต้อนรับ ${user.email}`);
+
+        // รีเซ็ตฟอร์ม
+        email = "";
+        password = "";
+        confirmPassword = "";
+
+        // นำทางไปยังหน้า /cpe02
+        goto('/cpe02');
     } catch (error) {
-      alert("เกิดข้อผิดพลาดในการสมัครสมาชิก: " + error.message);
+        alert("เกิดข้อผิดพลาดในการสมัครสมาชิก: " + error.message);
     } finally {
-      isLoading = false; // โหลดเสร็จแล้ว
+        isLoading = false; // เสร็จสิ้นการโหลด
     }
-  }
+}
 </script>
 <div class="flex justify-center items-center mt-24">
 

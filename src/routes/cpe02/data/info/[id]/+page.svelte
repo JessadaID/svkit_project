@@ -11,6 +11,8 @@
     getDoc,
   } from "firebase/firestore";
   import { db } from "$lib/firebase.js";
+  import { checkLoginStatus } from "../../../../../auth";
+  import { getCookie } from "cookies-next";
 
   let isLoggedIn = false;
   let email = "";
@@ -24,10 +26,20 @@
   let comments = "";
   let visibleStates = [];
 
-  if (typeof window !== "undefined") {
-    email = localStorage.getItem("email");
-    role = localStorage.getItem("role");
-  }
+  onMount(async () => {
+    const isUserLoggedIn = await checkLoginStatus(); // รอผลลัพธ์จาก checkLoginStatus
+
+    if (isUserLoggedIn) {
+      email = getCookie("email"); // หรือใช้ cookies ถ้าต้องการ
+      role = getCookie("role");
+      //console.log('User is logged in, Email:', email);
+    } else {
+      console.log("User not logged in. Redirecting to login...");
+      // ถ้าไม่ได้ล็อกอิน เปลี่ยนเส้นทางไปหน้า Login
+      goto("/login");
+    }
+  });
+
   if (role == "advisor") {
     can_edit = true;
   }
@@ -61,6 +73,25 @@
     } finally {
       isLoading = false; // หยุดสถานะการโหลด
     }
+
+    if (typeof window !== "undefined") {
+      // เช็คว่าโค้ดทำงานในฝั่งไคลเอนต์
+      const storedData = localStorage.getItem("selectedProject");
+      if (storedData) {
+        try {
+          project = JSON.parse(storedData); // แปลงข้อมูลจาก string กลับเป็น object
+
+          // ตรวจสอบว่า project.id ตรงกับ data.id หรือไม่
+          if (project.id !== data.id) {
+            isNotFound = true; // ถ้าไม่ตรงตั้งค่าสถานะเป็น 404
+          }
+        } catch (error) {
+          console.error("Error parsing stored data:", error);
+        }
+      } else {
+        console.log("No data found in localStorage.");
+      }
+    }
   });
 
   /*
@@ -84,33 +115,9 @@
     }
   }*/
 
-  // ใช้ onMount เพื่อนำข้อมูลจาก localStorage
-  onMount(() => {
-    isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
-
-    if (typeof window !== "undefined") {
-      // เช็คว่าโค้ดทำงานในฝั่งไคลเอนต์
-      const storedData = localStorage.getItem("selectedProject");
-      if (storedData) {
-        try {
-          project = JSON.parse(storedData); // แปลงข้อมูลจาก string กลับเป็น object
-
-          // ตรวจสอบว่า project.id ตรงกับ data.id หรือไม่
-          if (project.id !== data.id) {
-            isNotFound = true; // ถ้าไม่ตรงตั้งค่าสถานะเป็น 404
-          }
-        } catch (error) {
-          console.error("Error parsing stored data:", error);
-        }
-      } else {
-        console.log("No data found in localStorage.");
-      }
-    }
-  });
-
   function goToEditPage() {
     // ส่งข้อมูลไปยังหน้า edit (สามารถใช้ store หรือ localStorage ได้)
-    localStorage.setItem("editProject", JSON.stringify(project));
+    localStorage.getItem("selectedProject", JSON.stringify(project));
     goto(`/cpe02/data/edit/${project.id}`); // นำทางไปหน้า /edit
     //console.log(project.id)
   }
