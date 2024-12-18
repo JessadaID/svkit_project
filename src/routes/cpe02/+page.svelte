@@ -1,24 +1,24 @@
 <script>
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
-  import { getAuth, onAuthStateChanged } from "firebase/auth";
+  import { checkLoginStatus} from '../../auth';
+
 
   let isLoggedIn = false;
 
-  onMount(() => {
-    const auth = getAuth();
-    onAuthStateChanged(auth, (user) => {
-      isLoggedIn = !!user; // ตรวจสอบว่าผู้ใช้ล็อกอินอยู่หรือไม่
+    onMount(async () => {
+        // ตรวจสอบสถานะล็อกอินเมื่อหน้าโหลด
+        isLoggedIn = await checkLoginStatus(); // ฟังก์ชันที่ตรวจสอบสถานะจาก Firebase
     });
-  });
 
-  function handleNavigation(url) {
-    if (isLoggedIn) {
-      goto(url);
-    } else {
-      goto("/login");
+    function handleNavigation(url) {
+        // ตรวจสอบสถานะล็อกอินแล้วนำทางไปยัง URL
+        if (isLoggedIn) {
+            goto(url);
+        } else {
+            goto('/login');  // ถ้าไม่ได้ล็อกอินให้ไปที่หน้า Login
+        }
     }
-  }
 </script>
 
 <div class="m-5">

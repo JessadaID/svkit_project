@@ -5,35 +5,60 @@
   import { onMount } from "svelte";
   import { doc, setDoc } from "firebase/firestore"; // ใช้ setDoc หรือ updateDoc
   import { db } from "$lib/firebase.js";
-
+  import { checkLoginStatus } from "../../../../../auth";
+  import { getCookie } from "cookies-next";
+  import { goto } from "$app/navigation";
   // @ts-ignore
   let project = null;
   let isNotFound = false;
   let isLoading = false;
-
+  let email = "";
+  let role = "";
   // @ts-ignore
   let members = [""]; // ตัวแปรสำหรับเก็บสมาชิกที่เพิ่มเข้ามา
 
-  // ใช้ onMount เพื่อนำข้อมูลจาก localStorage
-  onMount(() => {
-    if (typeof window !== "undefined") {
-      // เช็คว่าโค้ดทำงานในฝั่งไคลเอนต์
-      const storedData = localStorage.getItem("selectedProject");
-      if (storedData) {
-        try {
-          project = JSON.parse(storedData); // แปลงข้อมูลจาก string กลับเป็น object
+  onMount(async () => {
+    const isUserLoggedIn = await checkLoginStatus(); // รอผลลัพธ์จาก checkLoginStatus
 
-          // ตรวจสอบว่า project.id ตรงกับ data.id หรือไม่
-          if (project.id !== data.id) {
-            isNotFound = true; // ถ้าไม่ตรงตั้งค่าสถานะเป็น 404
-          }
-        } catch (error) {
-          console.error("Error parsing stored data:", error);
-        }
-      } else {
-        console.log("No data found in localStorage.");
-      }
+    if (isUserLoggedIn) {
+      email = getCookie("email"); // หรือใช้ cookies ถ้าต้องการ
+      role = getCookie("role");
+      //console.log('User is logged in, Email:', email);
+      //console.log('User is logged in, Email:', role);
+    } else {
+      console.log("User not logged in. Redirecting to login...");
+      // ถ้าไม่ได้ล็อกอิน เปลี่ยนเส้นทางไปหน้า Login
+      goto("/login");
     }
+
+    // ดึงข้อมูลจาก cookies
+    const storedData = localStorage.getItem("selectedProject"); // ดึงข้อมูลจาก cookies
+    if (storedData) {
+      try {
+        project = JSON.parse(storedData); // แปลงข้อมูลจาก string กลับเป็น object
+
+        // ตรวจสอบว่า project.id ตรงกับ data.id หรือไม่
+        if (project.id !== data.id) {
+          isNotFound = true; // ถ้าไม่ตรงตั้งค่าสถานะเป็น 404
+          console.log("Project ID mismatch. Marking as not found.");
+        }
+      } catch (error) {
+        console.error("Error parsing stored data from cookies:", error);
+      }
+    } else {
+      console.log("No data found in cookies.");
+    }
+    if(role != "admin"){
+      if (email !== project.email || email == null) {
+      goto("../../hacker_exe");
+    }
+    }
+    
+
+    // ตรวจสอบค่า email และ role
+    //console.log("project email from cookies:", project.email);
+    //console.log("Email from cookies:", email);
+    //console.log("Role from cookies:", role);
   });
 
   function addMemberRow() {
@@ -53,6 +78,7 @@
   async function handleSubmit(event) {
     event.preventDefault();
     isLoading = true;
+
     try {
       // อัปเดตข้อมูลใน Firestore
       const docRef = doc(db, "project-approve", project.id); // ระบุ collection และ document ID
@@ -66,6 +92,7 @@
       isLoading = false; // โหลดเสร็จแล้ว
     }
 
+    // เก็บข้อมูล project ใน cookies
     localStorage.setItem("selectedProject", JSON.stringify(project));
   }
 
@@ -112,6 +139,7 @@
             id="dropdown"
             name="term"
             class="p-2 w-4/12"
+            required
             bind:value={project.term}
           >
             <option value="2/2567" selected>2/2567</option>
@@ -209,15 +237,14 @@
           <!--===============================================-->
 
           <label for="email" class="block text-lg font-medium mt-3"
-          >ที่ปรึกษาภายนอก (ถ้ามี)
-        </label>
-        <input
-          type="text"
-          placeholder="ไม่บังคับ"
-          required
-          class="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
-          bind:value={project.External_consultant}
-        />
+            >ที่ปรึกษาภายนอก (ถ้ามี)
+          </label>
+          <input
+            type="text"
+            placeholder="ไม่บังคับ"
+            class="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+            bind:value={project.External_consultant}
+          />
 
           <label for="text" class="block text-lg font-medium mt-3"
             >ที่มาและความสำคัญของปัญหา

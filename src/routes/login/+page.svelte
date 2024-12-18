@@ -3,56 +3,67 @@
   import { signInWithEmailAndPassword, signOut } from "firebase/auth";
   import { doc, getDoc } from "firebase/firestore";
   import { goto } from "$app/navigation";
-
+  import { setLoginCookies,clearLoginCookies } from '../../auth';
   let email = "";
   let password = "";
   let user = null;
   let role = null;
   let loading = false;
 
-  async function login() {
+async function login() {
     try {
-      loading = true;
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      user = userCredential.user;
+        loading = true;
 
-      const userDocRef = doc(db, "users", user.uid);
-      const userDocSnap = await getDoc(userDocRef);
+        // ล็อกอินผู้ใช้
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
 
-      if (userDocSnap.exists()) {
-        role = userDocSnap.data().role;
-        // เก็บ email ลงใน localStorage
-        localStorage.setItem("email", user.email);
-        localStorage.setItem("role", role);
-        
-        goto("/cpe02");
-      } else {
-        alert("ไม่พบข้อมูลผู้ใช้ใน Firestore");
-      }
+        // ดึงข้อมูลผู้ใช้จาก Firestore
+        const userDocRef = doc(db, "users", user.uid);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (userDocSnap.exists()) {
+            const userData = userDocSnap.data();
+            const role = userData.role;
+
+            // เก็บข้อมูลใน Cookies
+            setLoginCookies(email, role);
+
+            // นำทางไปยังหน้า /cpe02
+            goto('/cpe02');
+        } else {
+            alert('ไม่พบข้อมูลผู้ใช้ใน Firestore');
+        }
     } catch (error) {
-      alert("ล็อกอินไม่สำเร็จ: " + error.message);
+        console.error('Error during login:', error);
+        alert(`ล็อกอินไม่สำเร็จ: ${error.message}`);
     } finally {
-      loading = false;
+        loading = false;
     }
-  }
+}
 
-  async function logout() {
+async function logout() {
     try {
-      await signOut(auth);
-      user = null;
-      role = null;
-      // ลบ email ออกจาก localStorage
-      localStorage.removeItem("email");
-      localStorage.removeItem("role");
-      alert("ออกจากระบบสำเร็จ");
+        // ทำการ Sign Out จาก Firebase Authentication
+        await signOut(auth);
+
+        // ล้างข้อมูลผู้ใช้
+        user = null;
+        role = null;
+
+        // ลบข้อมูลจาก Cookies
+        clearLoginCookies();
+
+        // แสดงข้อความแจ้งเตือนการออกจากระบบ
+        alert('ออกจากระบบสำเร็จ');
+
+        // เปลี่ยนเส้นทางไปยังหน้า Login
+        goto('/login');
     } catch (error) {
-      alert("เกิดข้อผิดพลาด: " + error.message);
+        // แสดงข้อผิดพลาดหากเกิดขึ้น
+        alert('เกิดข้อผิดพลาด: ' + error.message);
     }
-  }
+}
 </script>
 
 <div class="flex justify-center items-center mt-40">
