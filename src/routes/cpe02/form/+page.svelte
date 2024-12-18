@@ -12,7 +12,7 @@
   let adviser = [""];
   let project_problem = "";
   let comments = "";
-  let status = "wait";
+  let status = "";
   let email = "";
   let isLoading = false;
   let External_consultant = "";
@@ -68,6 +68,7 @@
     event.preventDefault();
     isLoading = true;
     try {
+      status = "wait";
       // เพิ่มข้อมูลไปยัง Firestore
       const docRef = await addDoc(collection(db, "project-approve"), {
         term,
@@ -170,6 +171,7 @@
             type="text"
             bind:value={members[index]}
             placeholder="Member Name"
+            required
             class="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 m-1"
           />
         {/each}

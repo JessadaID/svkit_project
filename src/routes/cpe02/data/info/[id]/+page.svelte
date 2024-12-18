@@ -9,6 +9,7 @@
     getDocs,
     doc,
     getDoc,
+    deleteDoc
   } from "firebase/firestore";
   import { db } from "$lib/firebase.js";
   import { checkLoginStatus } from "../../../../../auth";

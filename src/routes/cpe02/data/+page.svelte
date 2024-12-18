@@ -11,6 +11,7 @@
   let project_status = "all"; // สถานะโปรเจค
   let role = "";
   let email = "";
+
   onMount(async () => {
         const isUserLoggedIn = await checkLoginStatus(); // รอผลลัพธ์จาก checkLoginStatus
 
@@ -76,7 +77,7 @@
       {#if role == "advisor"}
         <a
           href="/cpe02/data/AddTask"
-          class="bg-sky-500 text-white py-1 px-3 rounded-md shadow hover:bg-sky-600 transition"
+          class="bg-sky-600 text-white py-2 px-3  shadow hover:bg-sky-700 transition"
           >เพิ่มหัวข้องาน</a
         >
       {/if}
