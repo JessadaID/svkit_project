@@ -119,9 +119,16 @@
 </script>
 
 <div>
+  
   {#if isNotFound}
     <h1>404 - Project Not Found</h1>
   {:else if project}
+  <div class="m-5">
+    <a href="/" class="hover:underline">หน้าแรก</a> >
+    <a href="/cpe02" class="hover:underline">แบบเสนอโครงงาน</a>
+    > <a href="/cpe02/data" class="hover:underline">ข้อมูลแบบเสนอโครงงาน</a> >
+    <b>{project.project_name_th} (Edit)</b>
+  </div>
     <!-- ตรวจสอบว่า projectData มีข้อมูล -->
 
     <div class="md:m-5 md:p-5 flex justify-center items-center">
@@ -196,6 +203,7 @@
                 type="text"
                 bind:value={project.members[index]}
                 placeholder="Member Name"
+                required
                 class="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 m-1"
               />
             {/each}
@@ -211,6 +219,7 @@
             name="adviser"
             class="p-2 w-full"
             multiple
+            required
             size="4"
             bind:value={project.adviser}
           >
