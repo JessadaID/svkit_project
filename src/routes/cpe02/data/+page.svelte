@@ -6,27 +6,26 @@
   import { onMount } from "svelte";
   import { getCookie } from "cookies-next";
   import { checkLoginStatus } from "../../../auth";
-  
+
   let searchQuery = ""; // ตัวแปรสำหรับเก็บค่าการค้นหา
   let project_status = "all"; // สถานะโปรเจค
   let role = "";
   let email = "";
+  let nextKey = "ไม่มีความคืบหน้า";
 
   onMount(async () => {
-        const isUserLoggedIn = await checkLoginStatus(); // รอผลลัพธ์จาก checkLoginStatus
+    const isUserLoggedIn = await checkLoginStatus(); // รอผลลัพธ์จาก checkLoginStatus
 
-        if (isUserLoggedIn) {
-            email = getCookie("email")  // หรือใช้ cookies ถ้าต้องการ
-            role = getCookie("role");
-            //console.log('User is logged in, Email:', email);
-        } else {
-            console.log('User not logged in. Redirecting to login...');
-            // ถ้าไม่ได้ล็อกอิน เปลี่ยนเส้นทางไปหน้า Login
-            goto("/login");
-        }
-    });
-
-
+    if (isUserLoggedIn) {
+      email = getCookie("email"); // หรือใช้ cookies ถ้าต้องการ
+      role = getCookie("role");
+      //console.log('User is logged in, Email:', email);
+    } else {
+      console.log("User not logged in. Redirecting to login...");
+      // ถ้าไม่ได้ล็อกอิน เปลี่ยนเส้นทางไปหน้า Login
+      goto("/login");
+    }
+  });
 
   function setdata(event, item) {
     event.preventDefault(); // ป้องกันการเปลี่ยนเส้นทาง URL โดยอัตโนมัติ
@@ -53,6 +52,20 @@
       return matchesSearchQuery && matchesStatus;
     });
   }
+
+  function getLastApprovedTask(tasks) {
+    // กรอง tasks ที่มีสถานะ 'approve'
+    const approvedTasks = Object.keys(tasks)
+      .filter((key) => tasks[key].status === "approve")
+      .map((key) => ({ key, ...tasks[key] }));
+
+    // ถ้ามี task ที่ approve, คืนค่าตัวสุดท้ายที่ผ่านการ approve
+    if (approvedTasks.length > 0) {
+      return approvedTasks[approvedTasks.length - 1]; // คืนค่าตัวสุดท้ายที่ approve
+    } else {
+      return null; // ไม่มีงานที่ approve
+    }
+  }
 </script>
 
 <div class="m-5">
@@ -60,7 +73,6 @@
   <a href="/cpe02" class="hover:underline">แบบเสนอโครงงาน</a>
   > <b>ข้อมูลแบบเสนอโครงงาน</b>
 </div>
-
 
 <nav class="m-5">
   <p>ค้นหาข้อมูล</p>
@@ -78,7 +90,7 @@
       {#if role == "advisor"}
         <a
           href="/cpe02/data/AddTask"
-          class="bg-sky-600 text-white py-2 px-3  shadow hover:bg-sky-700 transition"
+          class="bg-sky-600 text-white py-2 px-3 shadow hover:bg-sky-700 transition"
           >เพิ่มหัวข้องาน</a
         >
       {/if}
@@ -164,20 +176,29 @@
               {item.adviser[0]}
             </p>
           </td><td class="p-4 border-b border-slate-200">
-            <p class="block text-sm text-slate-800">Task 1</p>
+            <p class="block text-sm text-slate-800">
+              {#if getLastApprovedTask(item.Tasks)}
+                งานที่ {(parseInt(getLastApprovedTask(item.Tasks).key)+1).toString() }
+              {:else}
+                ไม่มีการคืบหน้า
+              {/if}
+            </p>
           </td><td class="p-4 border-b border-slate-200">
-            {#if item.status == "wait"}
-              <p class="text-blue-500 font-bold flex items-center text-sm">
-                รอการอนุมัติ
-              </p>
-            {:else if item.status == "improvement"}
-              <p class="text-yellow-500 font-bold flex items-center text-sm">
-                แก้ไขเอกสาร
-              </p>
-            {:else if item.status == "approve"}
-              <p class="text-green-500 font-bold flex items-center text-sm">
-                อนุมัติแล้ว
-              </p>
+            <!--{ console.log(Object.values(item.Tasks).pop().status)}-->
+            {#if Object.keys(item.Tasks).length > 0}
+              {#if Object.values(item.Tasks).pop().status == "wait"}
+                <p class="text-blue-500 font-bold flex items-center text-sm">
+                  รอการอนุมัติ
+                </p>
+              {:else if Object.values(item.Tasks).pop().status == "improvement"}
+                <p class="text-yellow-500 font-bold flex items-center text-sm">
+                  แก้ไขเอกสาร
+                </p>
+              {:else if Object.values(item.Tasks).pop().status == "approve"}
+                <p class="text-green-500 font-bold flex items-center text-sm">
+                  อนุมัติแล้ว
+                </p>
+              {/if}
             {/if}
           </td><td class="p-4 border-b border-slate-200">
             <p class="block text-sm text-slate-800">

@@ -156,7 +156,7 @@
     // สร้าง Task ใหม่จาก index
     const taskKey = `Tasks.${index}`;
     const newTask = {
-      comment: comment[index], // ดึงค่า comment ตาม index
+      comment: comment[index] || "", // ดึงค่า comment ตาม index
       status: status[index], // ดึงค่า status ตาม index
     };
 
