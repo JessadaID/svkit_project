@@ -48,12 +48,11 @@
     } else {
       console.log("No data found in cookies.");
     }
-    if(role != "admin"){
+    if (role != "admin") {
       if (email !== project.email || email == null) {
-      goto("../../hacker_exe");
+        goto("../../hacker_exe");
+      }
     }
-    }
-    
 
     // ตรวจสอบค่า email และ role
     //console.log("project email from cookies:", project.email);
@@ -82,7 +81,24 @@
     try {
       // อัปเดตข้อมูลใน Firestore
       const docRef = doc(db, "project-approve", project.id); // ระบุ collection และ document ID
-      await setDoc(docRef, project);
+
+      // สำเนา Tasks จาก project
+      const updatedTasks = { ...project.Tasks };
+
+      // วนลูป Tasks เพื่อปรับสถานะ
+      Object.keys(updatedTasks).forEach((key) => {
+        if (updatedTasks[key].status !== "approve") {
+          updatedTasks[key].status = "wait"; // เปลี่ยน status ที่ไม่ใช่ approve เป็น wait
+        }
+      });
+
+      // อัปเดตข้อมูลกลับเข้า Firestore
+      const updatedProject = {
+        ...project,
+        Tasks: updatedTasks, // ใช้ Tasks ที่ถูกแก้ไขแล้ว
+      };
+
+      await setDoc(docRef, updatedProject);
 
       alert("แก้ไขข้อมูลเรียบร้อยแล้ว!");
     } catch (error) {
@@ -119,16 +135,15 @@
 </script>
 
 <div>
-  
   {#if isNotFound}
     <h1>404 - Project Not Found</h1>
   {:else if project}
-  <div class="m-5">
-    <a href="/" class="hover:underline">หน้าแรก</a> >
-    <a href="/cpe02" class="hover:underline">แบบเสนอโครงงาน</a>
-    > <a href="/cpe02/data" class="hover:underline">ข้อมูลแบบเสนอโครงงาน</a> >
-    <b>{project.project_name_th} (Edit)</b>
-  </div>
+    <div class="m-5">
+      <a href="/" class="hover:underline">หน้าแรก</a> >
+      <a href="/cpe02" class="hover:underline">แบบเสนอโครงงาน</a>
+      > <a href="/cpe02/data" class="hover:underline">ข้อมูลแบบเสนอโครงงาน</a> >
+      <b>{project.project_name_th} (Edit)</b>
+    </div>
     <!-- ตรวจสอบว่า projectData มีข้อมูล -->
 
     <div class="md:m-5 md:p-5 flex justify-center items-center">
