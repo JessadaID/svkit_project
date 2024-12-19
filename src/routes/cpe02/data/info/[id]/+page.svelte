@@ -9,23 +9,24 @@
     getDocs,
     doc,
     getDoc,
-    deleteDoc
+    deleteDoc,
+    updateDoc,
   } from "firebase/firestore";
   import { db } from "$lib/firebase.js";
   import { checkLoginStatus } from "../../../../../auth";
   import { getCookie } from "cookies-next";
 
-  let isLoggedIn = false;
   let email = "";
   let project = null;
   let isNotFound = false;
   let role = "";
   let isLoading = true;
+  let isLoadingtext = false;
   let can_edit = false;
-  let status = "";
+  let status = [""];
   let Task = [];
-  let comments = "";
   let visibleStates = [];
+  let comment = [""];
 
   onMount(async () => {
     const isUserLoggedIn = await checkLoginStatus(); // รอผลลัพธ์จาก checkLoginStatus
@@ -33,6 +34,9 @@
     if (isUserLoggedIn) {
       email = getCookie("email"); // หรือใช้ cookies ถ้าต้องการ
       role = getCookie("role");
+      if (role == "advisor") {
+        can_edit = true;
+      }
       //console.log('User is logged in, Email:', email);
     } else {
       console.log("User not logged in. Redirecting to login...");
@@ -41,9 +45,6 @@
     }
   });
 
-  if (role == "advisor") {
-    can_edit = true;
-  }
   // ฟังก์ชันดึงข้อมูลจาก Firebase
 
   onMount(async () => {
@@ -58,14 +59,22 @@
         console.error("ไม่พบข้อมูลใน project-approve");
       }
 
+      Object.entries(project.Tasks).forEach(([key, task]) => {
+        //console.log(`Task ${key}: ${task.comment}`);
+        comment[key] = task.comment
+        status[key] = task.status
+      });
+
       // --- ดึงข้อมูลจาก collection 'Task' ที่มี term == '2/2567' ---
       const taskQuery = query(
         collection(db, "Task"), // ระบุ collection 'Task'
-        where("term", "==", project.term) // เงื่อนไขกรองเฉพาะ term == '2/2567'
+        where("term", "==", project.term)
       );
 
-      const querySnapshot = await getDocs(taskQuery); // ดึงข้อมูลที่ตรงเงื่อนไข
-      Task = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })); // แปลงข้อมูลเป็น Array
+      const querySnapshot = await getDocs(taskQuery);
+      Task = querySnapshot.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .sort((a, b) => a.index - b.index); // แปลงข้อมูลเป็น Array
 
       // ตั้งค่าให้ visibleStates มีค่าเริ่มต้นเป็น false ตามจำนวน Task
       visibleStates = Task.map(() => false);
@@ -94,27 +103,6 @@
       }
     }
   });
-
-  /*
-  async function saveData() {
-    try {
-      isLoading = true;
-      const docRef = doc(db, "project-approve", data.id);
-      status = "improvement";
-      const updatedData = {
-        comments,
-        status,
-      };
-
-      await updateDoc(docRef, updatedData);
-      alert("บันทึกข้อมูลสำเร็จ!");
-    } catch (error) {
-      console.error("เกิดข้อผิดพลาดในการบันทึกข้อมูล:", error);
-      alert("เกิดข้อผิดพลาด กรุณาลองอีกครั้ง");
-    } finally {
-      isLoading = false;
-    }
-  }*/
 
   function goToEditPage() {
     // ส่งข้อมูลไปยังหน้า edit (สามารถใช้ store หรือ localStorage ได้)
@@ -155,6 +143,35 @@
     //console.log(today);
     const due = new Date(dueDate); // วันที่กำหนดส่ง
     return today > due; // คืนค่า true ถ้าเลยกำหนด
+  }
+
+  function updateStatus(event, index) {
+    status[index] = event.target.value; // อัปเดตค่าใน status ตามที่เลือก
+    //console.log(`Task ${index + 1}: ${status[index]}`); // แสดงค่าที่เลือกใน status
+  }
+
+  async function addTask(index, comment, status) {
+    const projectDocRef = doc(db, "project-approve", data.id);
+
+    // สร้าง Task ใหม่จาก index
+    const taskKey = `Tasks.${index}`;
+    const newTask = {
+      comment: comment[index], // ดึงค่า comment ตาม index
+      status: status[index], // ดึงค่า status ตาม index
+    };
+
+    try {
+      isLoadingtext = true;
+      await updateDoc(projectDocRef, {
+        [taskKey]: newTask, // ใช้ dot notation ในการอัปเดต
+      });
+      alert("ดำเนินการเรียบร้อยแล้ว!");
+      //console.log("Task added successfully!");
+    } catch (error) {
+      console.error("Error adding task: ", error);
+    } finally {
+      isLoadingtext = false;
+    }
   }
 </script>
 
@@ -214,6 +231,7 @@
       <b class="m-2">ความคืบหน้า เทอม : {project.term}</b>
       <!-- UI -->
       <div>
+        <!-- ส่วน UI ที่คุณมีอยู่แล้ว แต่เพิ่ม event handlers -->
         {#if isLoading != true}
           {#if Task.length > 0}
             {#each Task as task, index}
@@ -221,32 +239,56 @@
                 <h1><b>{task.title}</b></h1>
                 <p>{task.description}</p>
 
-                <!-- แสดงข้อความหากเกินกำหนด -->
                 {#if isOverdue(task.dueDate)}
                   <p class="text-red-600 font-bold mt-2">เกินกำหนดส่งแล้ว!</p>
                 {/if}
 
-                <!-- ปุ่ม toggle -->
                 <button
                   type="button"
                   class="absolute top-0 right-0 bg-white p-2 m-2 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer"
                   on:click={() => toggleTask(index)}
-                  aria-label="Toggle task visibility"
                 >
                   {visibleStates[index] ? "▲" : "▼"}
                 </button>
 
-                <!-- เนื้อหาที่ toggle ได้ -->
                 {#if visibleStates[index]}
                   <div class="mt-5 bg-gray-100 p-4 rounded-md">
                     <b>ความคิดเห็นของอาจารย์</b>
-                    <textarea class="w-full p-2" rows="5" readonly={!can_edit}
-                      >{task.comments}</textarea
-                    >
+                    <textarea
+                      class="w-full p-2"
+                      rows="5"
+                      readonly={!can_edit}
+                      bind:value={comment[index]}
+                    />
+                    {#if role === "advisor"}
+                      <input
+                        type="radio"
+                        id="improvement-{index}"
+                        name="status-{index}"
+                        value="improvement"
+                        checked={status[index] === "improvement"}
+                        on:change={(event) => updateStatus(event, index)}
+                      />
+                      <label for="improvement-{index}">แก้ไข</label><br />
 
-                    {#if role == "advisor"}
-                      <button class="bg-red-500 w-full mt-5 p-2 text-white">
-                        ยืนยัน
+                      <input
+                        type="radio"
+                        id="approve-{index}"
+                        name="status-{index}"
+                        value="approve"
+                        checked={status[index] === "approve"}
+                        on:change={(event) => updateStatus(event, index)}
+                      />
+                      <label for="approve-{index}">ผ่าน</label><br />
+                      <button
+                        class="bg-red-500 w-full mt-5 p-2 text-white"
+                        on:click={() => {
+                          //console.log(index, comment[index], status[index]);
+                          addTask(index, comment, status);
+                        }}
+                        disabled={isLoadingtext}
+                      >
+                        {isLoadingtext ? "Loading..." : "ยืนยัน"}
                       </button>
                     {/if}
                   </div>
@@ -254,7 +296,6 @@
               </div>
             {/each}
           {:else}
-            <!-- แสดงข้อความเมื่อไม่มีข้อมูลใน Task -->
             <div class="text-center bg-gray-200 p-5 rounded-md">
               <h1 class="text-lg font-bold text-red-500">ไม่พบข้อมูล</h1>
               <p>ไม่มีข้อมูลที่จะแสดงในขณะนี้</p>

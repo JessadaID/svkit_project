@@ -16,7 +16,7 @@
   let email = "";
   let isLoading = false;
   let External_consultant = "";
-
+  let Tasks = {}
   onMount(async () => {
         const isUserLoggedIn = await checkLoginStatus(); // รอผลลัพธ์จาก checkLoginStatus
 
@@ -81,6 +81,7 @@
         status,
         email,
         External_consultant,
+        Tasks,
       });
       alert(`เพิ่มข้อมูลสำเร็จ!`);
       // รีเซ็ตฟอร์ม
@@ -187,6 +188,7 @@
         name="adviser"
         class="p-2 w-full"
         multiple
+        required
         size="4"
         bind:value={adviser}
       >
