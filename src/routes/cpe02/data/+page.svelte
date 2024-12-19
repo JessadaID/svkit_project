@@ -199,6 +199,10 @@
                   อนุมัติแล้ว
                 </p>
               {/if}
+              {:else}
+              <p class="text-blue-500 font-bold flex items-center text-sm">
+                รอการอนุมัติ
+              </p>
             {/if}
           </td><td class="p-4 border-b border-slate-200">
             <p class="block text-sm text-slate-800">

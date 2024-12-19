@@ -11,7 +11,6 @@
   let project_name_en = "";
   let adviser = [""];
   let project_problem = "";
-  let comments = "";
   let status = "";
   let email = "";
   let isLoading = false;
@@ -77,7 +76,6 @@
         members,
         adviser,
         project_problem,
-        comments,
         status,
         email,
         External_consultant,
