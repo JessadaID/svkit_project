@@ -39,19 +39,31 @@
 
   // ฟังก์ชันสำหรับกรองข้อมูล
   function filterData() {
-    return data.data.filter((item) => {
-      // ตรวจสอบคำค้นหา
-      const matchesSearchQuery =
-        item.project_name_th.includes(searchQuery) ||
-        item.project_name_en.includes(searchQuery);
+  return data.data.filter((item) => {
+    // ตรวจสอบคำค้นหา
+    const matchesSearchQuery =
+      item.project_name_th.includes(searchQuery) ||
+      item.project_name_en.includes(searchQuery);
 
-      // ตรวจสอบสถานะ
-      const matchesStatus =
-        project_status === "all" || item.status === project_status;
+    // ตรวจสอบ Task status
+    const tasks = Object.values(item.Tasks || {});
+    const hasImprovement = tasks.some((task) => task.status === "improvement");
+    const hasWait = tasks.some((task) => task.status === "wait");
+    const hasApprove = tasks.some((task) => task.status === "approve");
 
-      return matchesSearchQuery && matchesStatus;
-    });
-  }
+    // กำหนดสถานะจาก Tasks
+    let currentStatus = "wait"; // ค่าเริ่มต้น
+    if (hasImprovement) currentStatus = "improvement";
+    else if (hasApprove) currentStatus = "approve";
+
+    // ตรวจสอบสถานะโปรเจค
+    const matchesStatus =
+      project_status === "all" || currentStatus === project_status;
+
+    return matchesSearchQuery && matchesStatus;
+  });
+}
+
 
   function getLastApprovedTask(tasks) {
     // กรอง tasks ที่มีสถานะ 'approve'
@@ -178,7 +190,9 @@
           </td><td class="p-4 border-b border-slate-200">
             <p class="block text-sm text-slate-800">
               {#if getLastApprovedTask(item.Tasks)}
-                งานที่ {(parseInt(getLastApprovedTask(item.Tasks).key)+1).toString() }
+                งานที่ {(
+                  parseInt(getLastApprovedTask(item.Tasks).key) + 1
+                ).toString()}
               {:else}
                 ไม่มีการคืบหน้า
               {/if}
@@ -186,20 +200,20 @@
           </td><td class="p-4 border-b border-slate-200">
             <!--{ console.log(Object.values(item.Tasks).pop().status)}-->
             {#if Object.keys(item.Tasks).length > 0}
-              {#if Object.values(item.Tasks).pop().status == "wait"}
-                <p class="text-blue-500 font-bold flex items-center text-sm">
-                  รอการอนุมัติ
-                </p>
-              {:else if Object.values(item.Tasks).pop().status == "improvement"}
+              {#if Object.values(item.Tasks).some((task) => task.status == "improvement")}
                 <p class="text-yellow-500 font-bold flex items-center text-sm">
                   แก้ไขเอกสาร
                 </p>
-              {:else if Object.values(item.Tasks).pop().status == "approve"}
+              {:else if Object.values(item.Tasks).some((task) => task.status == "wait")}
+                <p class="text-blue-500 font-bold flex items-center text-sm">
+                  รอการอนุมัติ
+                </p>
+              {:else if Object.values(item.Tasks).some((task) => task.status == "approve")}
                 <p class="text-green-500 font-bold flex items-center text-sm">
                   อนุมัติแล้ว
                 </p>
               {/if}
-              {:else}
+            {:else}
               <p class="text-blue-500 font-bold flex items-center text-sm">
                 รอการอนุมัติ
               </p>

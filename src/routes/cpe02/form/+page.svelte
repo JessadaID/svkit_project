@@ -1,33 +1,43 @@
 <script>
-  import { db } from "$lib/firebase";
+  import { db, storage } from "$lib/firebase";
   import { collection, addDoc } from "firebase/firestore";
+  import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import { getCookie } from "cookies-next/client";
   import { checkLoginStatus } from "../../../auth";
 
-  let term = "";
-  let project_name_th = "";
-  let project_name_en = "";
-  let adviser = [""];
-  let project_problem = "";
+  let term = ""; //เทอม
+  let project_name_th = ""; //ชื่อโปรเจค ไทย
+  let project_name_en = ""; //ชื่อโปรเจค eng
+  let adviser = [""]; // ที่ปรึกษา
+  let project_problem = ""; //4.	ที่มาและความสำคัญของปัญหา
   let status = "";
   let email = "";
   let isLoading = false;
-  let External_consultant = "";
-  let Tasks = {}
-  onMount(async () => {
-        const isUserLoggedIn = await checkLoginStatus(); // รอผลลัพธ์จาก checkLoginStatus
+  let External_consultant = ""; // ที่ปรึกษาภายนอก
+  let Tasks = {}; //comment advisor
 
-        if (isUserLoggedIn) {
-            email = getCookie("email")  // หรือใช้ cookies ถ้าต้องการ
-            //console.log('User is logged in, Email:', email);
-        } else {
-            console.log('User not logged in. Redirecting to login...');
-            // ถ้าไม่ได้ล็อกอิน เปลี่ยนเส้นทางไปหน้า Login
-            goto("/login");
-        }
-    });
+  let project_Objective = ""; //5.	วัตถุประสงค์ของโครงงาน
+  let research_data = ""; //งานวิจัยที่เกี่ยวข้อง
+  let Theory_principles = ""; //7.	ทฤษฎีและหลักการ
+
+  let selectedFiles = [];
+  let imagePreviews = [];
+  let uploadedImageUrls = []; // เพิ่มตัวแปรสำหรับเก็บ URL ที่อัพโหลดแล้ว
+
+  onMount(async () => {
+    const isUserLoggedIn = await checkLoginStatus(); // รอผลลัพธ์จาก checkLoginStatus
+
+    if (isUserLoggedIn) {
+      email = getCookie("email"); // หรือใช้ cookies ถ้าต้องการ
+      //console.log('User is logged in, Email:', email);
+    } else {
+      console.log("User not logged in. Redirecting to login...");
+      // ถ้าไม่ได้ล็อกอิน เปลี่ยนเส้นทางไปหน้า Login
+      goto("/login");
+    }
+  });
 
   let members = [""]; // ตัวแปรสำหรับเก็บสมาชิกที่เพิ่มเข้ามา
 
@@ -42,7 +52,7 @@
     }
   }
 
-  function handleTab(event) {
+  function handleTab(event, bindVariableSetter) {
     if (event.key === "Tab") {
       event.preventDefault();
       const textarea = event.target;
@@ -58,17 +68,21 @@
       // ปรับตำแหน่ง cursor
       textarea.selectionStart = textarea.selectionEnd = start + 1;
 
-      // อัปเดตค่าที่ bind
-      project_problem = textarea.value;
+      // อัปเดตค่าของตัวแปรที่ส่งมา
+      bindVariableSetter(textarea.value);
     }
   }
 
   async function handleSubmit(event) {
     event.preventDefault();
     isLoading = true;
+
     try {
+      // อัพโหลดรูปภาพก่อน
+      const imageUrls = await uploadImages();
+
       status = "wait";
-      // เพิ่มข้อมูลไปยัง Firestore
+      // เพิ่มข้อมูลไปยัง Firestore พร้อมกับ URL ของรูปภาพ
       const docRef = await addDoc(collection(db, "project-approve"), {
         term,
         project_name_th,
@@ -80,7 +94,12 @@
         email,
         External_consultant,
         Tasks,
+        project_Objective,
+        research_data,
+        Theory_principles,
+        images: imageUrls, // เพิ่ม array ของ URL รูปภาพ
       });
+
       alert(`เพิ่มข้อมูลสำเร็จ!`);
       // รีเซ็ตฟอร์ม
       term = "";
@@ -91,13 +110,91 @@
       project_problem = "";
       status = "";
       External_consultant = "";
+      project_Objective = "";
+      research_data = "";
+      Theory_principles = "";
+      selectedFiles = [];
+      imagePreviews = [];
     } catch (error) {
       console.error("Error adding document: ", error);
       alert("เกิดข้อผิดพลาด: " + error.message);
     } finally {
-      isLoading = false; // โหลดเสร็จแล้ว
+      isLoading = false;
     }
   }
+
+  function handleFileSelect(event) {
+    const files = Array.from(event.target.files);
+
+    // รีเซ็ตอาเรย์เก่า
+    selectedFiles = [];
+    imagePreviews = [];
+
+    files.forEach((file) => {
+      if (file.type.startsWith("image/")) {
+        selectedFiles = [...selectedFiles, file];
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          imagePreviews = [
+            ...imagePreviews,
+            {
+              url: e.target.result,
+              name: file.name,
+              size: (file.size / 1024 / 1024).toFixed(2),
+              originalFile: file, // เก็บไฟล์ต้นฉบับไว้
+              title: "", // เพิ่ม title สำหรับแต่ละรูป
+            },
+          ];
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+
+  function removeImage(index) {
+    imagePreviews = imagePreviews.filter((_, i) => i !== index);
+    selectedFiles = selectedFiles.filter((_, i) => i !== index);
+  }
+  async function uploadImages() {
+  const urls = [];
+  const MAX_SIZE_MB = 2; // จำกัดขนาดไฟล์ไม่เกิน 2MB
+  const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024; // แปลงเป็นไบต์
+
+  for (let preview of imagePreviews) {
+    const file = preview.originalFile;
+    
+    // ตรวจสอบขนาดไฟล์ก่อนการอัปโหลด
+    if (file.size > MAX_SIZE_BYTES) {
+      alert(`ไฟล์ "${file.name}" มีขนาดเกิน 2MB และไม่สามารถอัปโหลดได้`);
+      continue; // ข้ามไฟล์ที่ขนาดเกิน 2MB
+    }
+
+    const timestamp = Date.now();
+    const fileName = `${timestamp}_${file.name}`; // สร้างชื่อไฟล์ด้วย timestamp
+
+    // สร้าง reference ใน storage
+    const storageRef = ref(storage, `project-images/${fileName}`);
+
+    try {
+      // อัปโหลดไฟล์ไปยัง Firebase Storage
+      await uploadBytes(storageRef, file);
+
+      // ดึง URL ของไฟล์ที่อัปโหลด
+      const downloadURL = await getDownloadURL(storageRef);
+      urls.push({
+        url: downloadURL,
+        name: fileName,
+        title: preview.title || "ไม่มีคำอธิบาย",
+      });
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      throw error;
+    }
+  }
+
+  return urls;
+}
 </script>
 
 <div class="m-5">
@@ -115,7 +212,13 @@
       <!--===============================================-->
 
       <label for="name" class="block text-lg font-medium">ภาคเรียน</label>
-      <select id="dropdown" name="term" class="p-2 w-4/12" bind:value={term} required>
+      <select
+        id="dropdown"
+        name="term"
+        class="p-2 w-4/12"
+        bind:value={term}
+        required
+      >
         <option value="2/2567" selected>2/2567</option>
         <option value="1/2568">1/2568</option>
         <option value="2/2568">2/2568</option>
@@ -223,7 +326,7 @@
       />
 
       <label for="text" class="block text-lg font-medium mt-3"
-        >ที่มาและความสำคัญของปัญหา
+        >4. ที่มาและความสำคัญของปัญหา
       </label>
 
       <textarea
@@ -233,9 +336,92 @@
         cols="50"
         class="w-full p-2"
         bind:value={project_problem}
-        on:keydown={handleTab}
+        on:keydown={(event) =>
+          handleTab(event, (value) => (project_problem = value))}
         placeholder="เขียนที่มาและความสำคัญของปัญหา..."
       ></textarea>
+
+      <label for="text" class="block text-lg font-medium mt-3"
+        >5. วัตถุประสงค์ของโครงงาน
+      </label>
+
+      <textarea
+        id="editor"
+        name="w3review"
+        rows="7"
+        cols="50"
+        class="w-full p-2"
+        bind:value={project_Objective}
+        on:keydown={(event) =>
+          handleTab(event, (value) => (project_Objective = value))}
+        placeholder="วัตถุประสงค์ของโครงงาน"
+      ></textarea>
+
+      <label for="text" class="block text-lg font-medium mt-3"
+        >6. เอกสาร งานวิจัยที่เกี่ยวข้อง
+      </label>
+      <textarea
+        id="editor"
+        name="w3review"
+        rows="10"
+        cols="50"
+        class="w-full p-2"
+        bind:value={research_data}
+        on:keydown={(event) =>
+          handleTab(event, (value) => (research_data = value))}
+        placeholder="งานวิจัยที่เกี่ยวข้อง"
+      ></textarea>
+
+      <label for="text" class="block text-lg font-medium mt-3"
+        >7. ทฤษฎีและหลักการ
+      </label>
+      <textarea
+        id="editor"
+        name="w3review"
+        rows="10"
+        cols="50"
+        class="w-full p-2"
+        bind:value={Theory_principles}
+        on:keydown={(event) =>
+          handleTab(event, (value) => (Theory_principles = value))}
+        placeholder="งานวิจัยที่เกี่ยวข้อง"
+      ></textarea>
+
+      <label class="block mt-2 text-sm font-medium" for="multiple_files"
+        >อัพโหลดรูปภาพ (ห้ามเกิน 2MB)</label
+      >
+      <input
+        id="multiple_files"
+        type="file"
+        accept="image/*"
+        multiple
+        class="relative m-0 block w-full min-w-0 flex-auto cursor-pointer rounded border border-solid-black border-secondary-500 bg-transparent bg-clip-padding px-3 py-[0.32rem] text-base font-normal text-surface transition duration-300 ease-in-out file:-mx-3 file:-my-[0.32rem] file:me-3 file:cursor-pointer file:overflow-hidden file:rounded-none file:border-0 file:border-e file:border-solid file:border-inherit file:bg-transparent file:px-3 file:py-[0.32rem] file:text-surface focus:border-primary focus:text-gray-700 focus:shadow-inset focus:outline-none dark:border-black/70"
+        on:change={handleFileSelect}
+      />
+
+      <div class="grid grid-cols-2">
+        {#each imagePreviews as preview, index}
+          <div class="image-item mt-3">
+            <img src={preview.url} alt={preview.name} class="h-40" />
+            <div class="image-info">
+              <span>{preview.size} MB</span>
+              <input
+                type="text"
+                placeholder="ใส่คำอธิบายรูปภาพ"
+                class="w-full p-1 my-1 border rounded"
+                bind:value={preview.title}
+              />
+              <button
+                type="button"
+                class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                on:click={() => removeImage(index)}
+              >
+                ลบ
+              </button>
+            </div>
+          </div>
+        {/each}
+      </div>
     </div>
     <!--===============================================-->
 
