@@ -178,6 +178,14 @@
       isLoadingtext = false;
     }
   }
+
+  function formatDate(dateString) {
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0'); // เดือนเริ่มต้นที่ 0
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
+  }
 </script>
 
 {#if isNotFound}
@@ -286,7 +294,7 @@
                     อนุมัติ
                   </p>
                 {/if}
-
+                <p>กำหนดส่ง : {formatDate(task.dueDate)}</p>
                 {#if isOverdue(task.dueDate)}
                   <p class="text-red-600 font-bold mt-2">เกินกำหนดส่งแล้ว!</p>
                 {/if}
