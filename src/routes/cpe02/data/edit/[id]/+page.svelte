@@ -26,6 +26,7 @@
   let previewUrls = [];
   let imageDescriptions = [];
   let isUploading = false;
+  let fileInput;
 
   onMount(async () => {
     const isUserLoggedIn = await checkLoginStatus(); // รอผลลัพธ์จาก checkLoginStatus
@@ -174,6 +175,7 @@
   }
 
   function handleFileSelect(event) {
+    fileInput = event.target;
     const files = Array.from(event.target.files);
     selectedFiles = [...selectedFiles, ...files];
 
@@ -192,6 +194,10 @@
     selectedFiles = selectedFiles.filter((_, i) => i !== index);
     previewUrls = previewUrls.filter((_, i) => i !== index);
     imageDescriptions = imageDescriptions.filter((_, i) => i !== index);
+
+    if (imagePreviews.length === 0 && fileInput) {
+        fileInput.value = '';
+    }
   }
 
   async function uploadImages() {
@@ -480,7 +486,7 @@
           </div>
 
           <!--===================-->
-          <label for="images" class="block text-lg font-medium mt-2"
+          <label for="" class="block text-lg font-medium mt-2"
             >รูปภาพเดิม</label
           >
           <div class="grid grid-cols-2">

@@ -25,6 +25,7 @@
   let selectedFiles = [];
   let imagePreviews = [];
   let uploadedImageUrls = []; // เพิ่มตัวแปรสำหรับเก็บ URL ที่อัพโหลดแล้ว
+  let fileInput;
 
   onMount(async () => {
     const isUserLoggedIn = await checkLoginStatus(); // รอผลลัพธ์จาก checkLoginStatus
@@ -124,6 +125,7 @@
   }
 
   function handleFileSelect(event) {
+    fileInput = event.target;
     const files = Array.from(event.target.files);
 
     // รีเซ็ตอาเรย์เก่า
@@ -155,7 +157,12 @@
   function removeImage(index) {
     imagePreviews = imagePreviews.filter((_, i) => i !== index);
     selectedFiles = selectedFiles.filter((_, i) => i !== index);
-  }
+    
+    // Clear the file input if all images are removed
+    if (imagePreviews.length === 0 && fileInput) {
+        fileInput.value = '';
+    }
+}
   async function uploadImages() {
   const urls = [];
   const MAX_SIZE_MB = 2; // จำกัดขนาดไฟล์ไม่เกิน 2MB
