@@ -4,10 +4,16 @@
 
   import { onMount } from "svelte";
   import { doc, setDoc } from "firebase/firestore"; // ใช้ setDoc หรือ updateDoc
-  import { db } from "$lib/firebase.js";
+  import { db, storage } from "$lib/firebase.js";
   import { checkLoginStatus } from "../../../../../auth";
   import { getCookie } from "cookies-next";
   import { goto } from "$app/navigation";
+  import {
+    ref,
+    deleteObject,
+    uploadBytes,
+    getDownloadURL,
+  } from "firebase/storage";
   // @ts-ignore
   let project = null;
   let isNotFound = false;
@@ -16,6 +22,10 @@
   let role = "";
   // @ts-ignore
   let members = [""]; // ตัวแปรสำหรับเก็บสมาชิกที่เพิ่มเข้ามา
+  let selectedFiles = [];
+  let previewUrls = [];
+  let imageDescriptions = [];
+  let isUploading = false;
 
   onMount(async () => {
     const isUserLoggedIn = await checkLoginStatus(); // รอผลลัพธ์จาก checkLoginStatus
@@ -74,45 +84,47 @@
     }
   }
 
+  // Modify your existing handleSubmit function
   async function handleSubmit(event) {
     event.preventDefault();
     isLoading = true;
 
     try {
-      // อัปเดตข้อมูลใน Firestore
-      const docRef = doc(db, "project-approve", project.id); // ระบุ collection และ document ID
+      // Upload images first if there are any
+      if (selectedFiles.length > 0) {
+        const uploadSuccess = await uploadImages();
+        if (!uploadSuccess) {
+          throw new Error("Image upload failed");
+        }
+      }
 
-      // สำเนา Tasks จาก project
+      // Your existing Firestore update code
+      const docRef = doc(db, "project-approve", project.id);
       const updatedTasks = { ...project.Tasks };
-
-      // วนลูป Tasks เพื่อปรับสถานะ
       Object.keys(updatedTasks).forEach((key) => {
         if (updatedTasks[key].status !== "approve") {
-          updatedTasks[key].status = "wait"; // เปลี่ยน status ที่ไม่ใช่ approve เป็น wait
+          updatedTasks[key].status = "wait";
         }
       });
 
-      // อัปเดตข้อมูลกลับเข้า Firestore
       const updatedProject = {
         ...project,
-        Tasks: updatedTasks, // ใช้ Tasks ที่ถูกแก้ไขแล้ว
+        Tasks: updatedTasks,
       };
 
       await setDoc(docRef, updatedProject);
-
       alert("แก้ไขข้อมูลเรียบร้อยแล้ว!");
     } catch (error) {
       console.error("Error updating document: ", error);
       alert("เกิดข้อผิดพลาดในการอัปเดตข้อมูล");
     } finally {
-      isLoading = false; // โหลดเสร็จแล้ว
+      isLoading = false;
     }
 
-    // เก็บข้อมูล project ใน cookies
     localStorage.setItem("selectedProject", JSON.stringify(project));
   }
 
-  function handleTab(event) {
+  function handleTab(event, bindVariableSetter) {
     if (event.key === "Tab") {
       event.preventDefault();
       const textarea = event.target;
@@ -128,8 +140,101 @@
       // ปรับตำแหน่ง cursor
       textarea.selectionStart = textarea.selectionEnd = start + 1;
 
-      // อัปเดตค่าที่ bind
-      project.project_problem = textarea.value;
+      // อัปเดตค่าของตัวแปรที่ส่งมา
+      bindVariableSetter(textarea.value);
+    }
+  }
+
+  async function deleteImage(imageUrl, index) {
+    // แสดงกล่องยืนยันก่อนลบ
+    const confirmDelete = window.confirm("คุณต้องการลบรูปภาพนี้จริงๆ หรือไม่?");
+    if (!confirmDelete) {
+      return; // ถ้าผู้ใช้ยกเลิกการลบ ให้หยุดการทำงาน
+    }
+
+    try {
+      // สร้าง reference ไปยังรูปภาพใน Firebase Storage
+      const imageRef = ref(storage, imageUrl.url);
+
+      // ลบรูปภาพจาก Firebase Storage
+      await deleteObject(imageRef);
+
+      // ลบรูปภาพจาก array ของ images
+      project.images = project.images.filter((_, i) => i !== index);
+
+      // อัปเดตเอกสารของโปรเจกต์ใน Firestore
+      const docRef = doc(db, "project-approve", project.id);
+      await setDoc(docRef, project);
+
+      alert("ลบรูปภาพเรียบร้อยแล้ว");
+    } catch (error) {
+      console.error("Error deleting image:", error);
+      alert("เกิดข้อผิดพลาดในการลบรูปภาพ");
+    }
+  }
+
+  function handleFileSelect(event) {
+    const files = Array.from(event.target.files);
+    selectedFiles = [...selectedFiles, ...files];
+
+    // Generate previews for new files
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        previewUrls = [...previewUrls, reader.result];
+        imageDescriptions = [...imageDescriptions, ""];
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function removePreview(index) {
+    selectedFiles = selectedFiles.filter((_, i) => i !== index);
+    previewUrls = previewUrls.filter((_, i) => i !== index);
+    imageDescriptions = imageDescriptions.filter((_, i) => i !== index);
+  }
+
+  async function uploadImages() {
+    isUploading = true;
+    const uploadPromises = [];
+
+    for (let i = 0; i < selectedFiles.length; i++) {
+      const file = selectedFiles[i];
+      const description = imageDescriptions[i];
+
+      // Create a unique filename
+      const timestamp = Date.now();
+      const filename = `${timestamp}_${file.name}`;
+      const storageRef = ref(storage, `project-images/${filename}`);
+
+      // Create upload promise
+      const uploadPromise = uploadBytes(storageRef, file)
+        .then((snapshot) => getDownloadURL(snapshot.ref))
+        .then((url) => ({
+          url: url,
+          title: description || "No description",
+        }));
+
+      uploadPromises.push(uploadPromise);
+    }
+
+    try {
+      const uploadedImages = await Promise.all(uploadPromises);
+      // Add new images to existing project images
+      project.images = [...(project.images || []), ...uploadedImages];
+
+      // Clear the upload queue
+      selectedFiles = [];
+      previewUrls = [];
+      imageDescriptions = [];
+
+      return true;
+    } catch (error) {
+      console.error("Error uploading images:", error);
+      alert("เกิดข้อผิดพลาดในการอัพโหลดรูปภาพ");
+      return false;
+    } finally {
+      isUploading = false;
     }
   }
 </script>
@@ -271,7 +376,7 @@
           />
 
           <label for="text" class="block text-lg font-medium mt-3"
-            >ที่มาและความสำคัญของปัญหา
+            >4. ที่มาและความสำคัญของปัญหา
           </label>
 
           <textarea
@@ -281,9 +386,125 @@
             cols="50"
             class="w-full p-2"
             bind:value={project.project_problem}
-            on:keydown={handleTab}
+            on:keydown={(event) =>
+              handleTab(event, (value) => (project.project_problem = value))}
             placeholder="เขียนที่มาและความสำคัญของปัญหา..."
           ></textarea>
+
+          <label for="text" class="block text-lg font-medium mt-3"
+            >5. วัตถุประสงค์ของโครงงาน
+          </label>
+
+          <textarea
+            id="editor"
+            name="w3review"
+            rows="7"
+            cols="50"
+            class="w-full p-2"
+            bind:value={project.project_Objective}
+            on:keydown={(event) =>
+              handleTab(event, (value) => (project.project_Objective = value))}
+            placeholder="วัตถุประสงค์ของโครงงาน"
+          ></textarea>
+
+          <label for="text" class="block text-lg font-medium mt-3"
+            >6. เอกสาร งานวิจัยที่เกี่ยวข้อง
+          </label>
+          <textarea
+            id="editor"
+            name="w3review"
+            rows="10"
+            cols="50"
+            class="w-full p-2"
+            bind:value={project.research_data}
+            on:keydown={(event) =>
+              handleTab(event, (value) => (project.research_data = value))}
+            placeholder="งานวิจัยที่เกี่ยวข้อง"
+          ></textarea>
+
+          <label for="text" class="block text-lg font-medium mt-3"
+            >7. ทฤษฎีและหลักการ
+          </label>
+          <textarea
+            id="editor"
+            name="w3review"
+            rows="10"
+            cols="50"
+            class="w-full p-2"
+            bind:value={project.Theory_principles}
+            on:keydown={(event) =>
+              handleTab(event, (value) => (project.Theory_principles = value))}
+            placeholder="งานวิจัยที่เกี่ยวข้อง"
+          ></textarea>
+
+          <div class="mt-5">
+            <label for="images" class="block text-lg font-medium"
+              >เพิ่มรูปภาพ (ไม่เกิน 2MB)</label
+            >
+            <input
+              type="file"
+              id="images"
+              accept="image/*"
+              multiple
+              on:change={handleFileSelect}
+              class="p-2 border border-gray-300 rounded w-full"
+            />
+
+            <!-- Preview section -->
+            {#if previewUrls.length > 0}
+              <div class="grid grid-cols-2 gap-4 mt-4">
+                {#each previewUrls as preview, index}
+                  <div class="border p-4 rounded">
+                    <img
+                      src={preview}
+                      alt="Preview"
+                      class="h-40 w-auto mx-auto mb-2"
+                    />
+                    <input
+                      type="text"
+                      bind:value={imageDescriptions[index]}
+                      placeholder="รายละเอียดรูปภาพ..."
+                      class="w-full p-2 border rounded mb-2"
+                    />
+                    <button
+                      type="button"
+                      class="bg-red-500 hover:bg-red-600 text-white px-7 py-1"
+                      on:click={() => removePreview(index)}
+                    >
+                      ลบ
+                    </button>
+                  </div>
+                {/each}
+              </div>
+            {/if}
+          </div>
+
+          <!--===================-->
+          <label for="images" class="block text-lg font-medium mt-2"
+            >รูปภาพเดิม</label
+          >
+          <div class="grid grid-cols-2">
+            {#each project.images as imageUrl, index}
+              <div class="image-item mt-2">
+                <img src={imageUrl.url} alt={imageUrl.title} class="h-40" />
+                <label class=" mt-2">รายละเอียด :</label>
+                <input
+                  type="text"
+                  bind:value={imageUrl.title}
+                  placeholder="รายละเอียดรูปภาพ..."
+                  class="w-full p-2 border rounded mb-2"
+                />
+                <button
+                  type="button"
+                  class="bg-red-500 hover:bg-red-600 text-white px-7 p-1 shadow-md"
+                  on:click={() => deleteImage(imageUrl, index)}
+                >
+                  ลบ
+                </button>
+              </div>
+              <!-- Delete button -->
+            {/each}
+          </div>
         </div>
         <!--===============================================-->
 

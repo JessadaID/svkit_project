@@ -27,7 +27,13 @@
   let Task = [];
   let visibleStates = [];
   let comment = [""];
+  let showModal = false;
+  let selectedImage = null;
 
+  function openImageModal(image) {
+    selectedImage = image;
+    showModal = true;
+  }
   onMount(async () => {
     const isUserLoggedIn = await checkLoginStatus(); // รอผลลัพธ์จาก checkLoginStatus
 
@@ -61,8 +67,8 @@
 
       Object.entries(project.Tasks).forEach(([key, task]) => {
         //console.log(`Task ${key}: ${task.comment}`);
-        comment[key] = task.comment
-        status[key] = task.status
+        comment[key] = task.comment;
+        status[key] = task.status;
       });
 
       // --- ดึงข้อมูลจาก collection 'Task' ที่มี term == '2/2567' ---
@@ -112,7 +118,6 @@
   }
 
   async function deleteProject(id) {
-    //console.log(id)
     if (confirm("คุณต้องการลบข้อมูลนี้หรือไม่?")) {
       isLoading = true;
 
@@ -204,8 +209,32 @@
       {#if project.External_consultant != ""}
         <h1>&emsp;&emsp;{project.External_consultant} (ที่ปรึกษาภายนอก)</h1>
       {/if}
-      <b>4. ที่มาและปัญหา </b>
+      <p class="mt-2"><b>4. ที่มาและความสำคัญของปัญหา </b></p>
       <p style="white-space: pre-wrap;">{project.project_problem}</p>
+      <p class="mt-2"><b>5. วัตถุประสงค์ของโครงงาน </b></p>
+      <p style="white-space: pre-wrap;">{project.project_Objective}</p>
+      <p class="mt-2"><b>6. เอกสาร งานวิจัยที่เกี่ยวข้อง </b></p>
+      <p style="white-space: pre-wrap;">{project.research_data}</p>
+      <p class="mt-2"><b>7. ทฤษฎีและหลักการ </b></p>
+      <p style="white-space: pre-wrap;">{project.Theory_principles}</p>
+      <div class="grid grid-cols-2">
+
+      {#each project.images as imageUrl}
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+          <!-- svelte-ignore a11y_img_redundant_alt -->
+          <div>
+            <img
+              src={imageUrl.url}
+              alt="Image"
+              class="h-40 w-auto mb-2 cursor-pointer hover:opacity-80 transition-opacity"
+              on:click={() => openImageModal(imageUrl)}
+            />
+            <p>{imageUrl.title}</p>
+          </div>
+      {/each}
+    </div>
+
       {#if (role === "admin" || email === project.email) && email != null}
         <div class="flex justify-around mt-5">
           <button
@@ -238,11 +267,29 @@
               <div class="bg-slate-400 relative p-4 mb-4 rounded-md">
                 <h1><b>{task.title}</b></h1>
                 <p>{task.description}</p>
+                {#if project.Tasks[index]?.status == "wait"}
+                  <p
+                    class="text-sky-500 bg-white inline-block px-2 mt-2 rounded"
+                  >
+                    รออนุมัติ
+                  </p>
+                {:else if project.Tasks[index]?.status == "improvement"}
+                  <p
+                    class="text-amber-500 bg-white inline-block px-2 mt-2 rounded"
+                  >
+                    แก้ไข
+                  </p>
+                {:else if project.Tasks[index]?.status == "approve"}
+                  <p
+                    class="text-green-500 bg-white inline-block px-2 mt-2 rounded"
+                  >
+                    อนุมัติ
+                  </p>
+                {/if}
 
                 {#if isOverdue(task.dueDate)}
                   <p class="text-red-600 font-bold mt-2">เกินกำหนดส่งแล้ว!</p>
                 {/if}
-
                 <button
                   type="button"
                   class="absolute top-0 right-0 bg-white p-2 m-2 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer"
@@ -259,7 +306,7 @@
                       rows="5"
                       readonly={!can_edit}
                       bind:value={comment[index]}
-                    />
+                    ></textarea>
                     {#if role === "advisor"}
                       <input
                         type="radio"
@@ -311,4 +358,32 @@
   </div>
 {:else}
   <p>กำลังโหลดข้อมูล...</p>
+{/if}
+
+<!-- Add Modal component at the bottom of your template -->
+{#if showModal && selectedImage}
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div
+    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+    on:click={() => (showModal = false)}
+  >
+    <div class="relative max-w-4xl max-h-[90vh] overflow-auto">
+      <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+      <img
+        src={selectedImage.url}
+        alt={selectedImage.title}
+        class="max-w-full max-h-[85vh] object-contain bg-white p-2"
+        on:click|stopPropagation={() => {}}
+      />
+      <button
+        type="button"
+        class="absolute top-2 right-2 bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-red-600"
+        on:click={() => (showModal = false)}
+      >
+        ✕
+      </button>
+      <p class="text-white text-center mt-2">{selectedImage.title}</p>
+    </div>
+  </div>
 {/if}
