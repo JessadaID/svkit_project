@@ -3,7 +3,7 @@
   export let data;
 
   import { onMount } from "svelte";
-  import { doc, setDoc } from "firebase/firestore"; // ใช้ setDoc หรือ updateDoc
+  import { doc, setDoc ,getDoc} from "firebase/firestore"; // ใช้ setDoc หรือ updateDoc
   import { db, storage } from "$lib/firebase.js";
   import { checkLoginStatus } from "../../../../../auth";
   import { getCookie } from "cookies-next";
@@ -42,23 +42,22 @@
       goto("/login");
     }
 
-    // ดึงข้อมูลจาก cookies
-    const storedData = localStorage.getItem("selectedProject"); // ดึงข้อมูลจาก cookies
-    if (storedData) {
       try {
-        project = JSON.parse(storedData); // แปลงข้อมูลจาก string กลับเป็น object
-
-        // ตรวจสอบว่า project.id ตรงกับ data.id หรือไม่
-        if (project.id !== data.id) {
-          isNotFound = true; // ถ้าไม่ตรงตั้งค่าสถานะเป็น 404
-          console.log("Project ID mismatch. Marking as not found.");
+        const projectDoc = await getDoc(doc(db, 'project-approve', data.id));
+        if (projectDoc.exists()) {
+          project = projectDoc.data();
+          // ตรวจสอบว่า project.id ตรงกับ data.id หรือไม่
+          if (project.id !== data.id) {
+            isNotFound = true;
+            console.log("Project ID mismatch. Marking as not found.");
+          }
+        } else {
+          console.error("Project not found in Firestore.");
         }
       } catch (error) {
-        console.error("Error parsing stored data from cookies:", error);
+        console.error("Error fetching project data from Firestore:", error);
       }
-    } else {
-      console.log("No data found in cookies.");
-    }
+   
     if (role != "admin") {
       if (email !== project.email || email == null) {
         goto("../../hacker_exe");
