@@ -39,31 +39,32 @@
 
   // ฟังก์ชันสำหรับกรองข้อมูล
   function filterData() {
-  return data.data.filter((item) => {
-    // ตรวจสอบคำค้นหา
-    const matchesSearchQuery =
-      item.project_name_th.includes(searchQuery) ||
-      item.project_name_en.includes(searchQuery);
+    return data.data.filter((item) => {
+      // ตรวจสอบคำค้นหา
+      const matchesSearchQuery =
+        item.project_name_th.includes(searchQuery) ||
+        item.project_name_en.includes(searchQuery);
 
-    // ตรวจสอบ Task status
-    const tasks = Object.values(item.Tasks || {});
-    const hasImprovement = tasks.some((task) => task.status === "improvement");
-    const hasWait = tasks.some((task) => task.status === "wait");
-    const hasApprove = tasks.some((task) => task.status === "approve");
+      // ตรวจสอบ Task status
+      const tasks = Object.values(item.Tasks || {});
+      const hasImprovement = tasks.some(
+        (task) => task.status === "improvement"
+      );
+      const hasWait = tasks.some((task) => task.status === "wait");
+      const hasApprove = tasks.some((task) => task.status === "approve");
 
-    // กำหนดสถานะจาก Tasks
-    let currentStatus = "wait"; // ค่าเริ่มต้น
-    if (hasImprovement) currentStatus = "improvement";
-    else if (hasApprove) currentStatus = "approve";
+      // กำหนดสถานะจาก Tasks
+      let currentStatus = "wait"; // ค่าเริ่มต้น
+      if (hasImprovement) currentStatus = "improvement";
+      else if (hasApprove) currentStatus = "approve";
 
-    // ตรวจสอบสถานะโปรเจค
-    const matchesStatus =
-      project_status === "all" || currentStatus === project_status;
+      // ตรวจสอบสถานะโปรเจค
+      const matchesStatus =
+        project_status === "all" || currentStatus === project_status;
 
-    return matchesSearchQuery && matchesStatus;
-  });
-}
-
+      return matchesSearchQuery && matchesStatus;
+    });
+  }
 
   function getLastApprovedTask(tasks) {
     // กรอง tasks ที่มีสถานะ 'approve'
@@ -180,12 +181,21 @@
           </td>
           <td class="p-4 border-b border-slate-200">
             <p class="block text-sm text-slate-800">
-              {item.members[0]}
+              {#if item.members && item.members.length > 0}
+                {item.members[0]}
+              {:else}
+                -
+              {/if}
             </p>
           </td>
+          <!-- แก้ไขส่วนแสดง adviser -->
           <td class="p-4 border-b border-slate-200">
             <p class="block text-sm text-slate-800">
-              {item.adviser[0]}
+              {#if item.adviser && item.adviser.length > 0}
+                {item.adviser[0]}
+              {:else}
+                -
+              {/if}
             </p>
           </td><td class="p-4 border-b border-slate-200">
             <p class="block text-sm text-slate-800">

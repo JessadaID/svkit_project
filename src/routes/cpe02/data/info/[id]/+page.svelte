@@ -18,6 +18,7 @@
 
   let email = "";
   let project = null;
+    let project_local = null;
   let isNotFound = false;
   let role = "";
   let isLoading = true;
@@ -95,10 +96,10 @@
       const storedData = localStorage.getItem("selectedProject");
       if (storedData) {
         try {
-          project = JSON.parse(storedData); // แปลงข้อมูลจาก string กลับเป็น object
+          project_local = JSON.parse(storedData); // แปลงข้อมูลจาก string กลับเป็น object
 
           // ตรวจสอบว่า project.id ตรงกับ data.id หรือไม่
-          if (project.id !== data.id) {
+          if (project_local.id !== data.id) {
             isNotFound = true; // ถ้าไม่ตรงตั้งค่าสถานะเป็น 404
           }
         } catch (error) {
@@ -112,7 +113,6 @@
 
   function goToEditPage() {
     // ส่งข้อมูลไปยังหน้า edit (สามารถใช้ store หรือ localStorage ได้)
-    localStorage.getItem("selectedProject", JSON.stringify(project));
     goto(`/cpe02/data/edit/${project.id}`); // นำทางไปหน้า /edit
     //console.log(project.id)
   }
