@@ -116,6 +116,7 @@
       Theory_principles = "";
       selectedFiles = [];
       imagePreviews = [];
+      goto("../cpe02")
     } catch (error) {
       console.error("Error adding document: ", error);
       alert("เกิดข้อผิดพลาด: " + error.message);
@@ -218,7 +219,7 @@
     <div class="p-5">
       <!--===============================================-->
 
-      <label for="name" class="block text-lg font-medium">ภาคเรียน</label>
+      <label for="name" class="block text-lg font-medium">ภาคเรียน <b class="text-red-500">*</b></label>
       <select
         id="dropdown"
         name="term"
@@ -234,7 +235,7 @@
       <!--===============================================-->
 
       <label for="text" class="block text-lg font-medium mt-3"
-        >ชื่อโครงงาน (ภาษาไทย)</label
+        >ชื่อโครงงาน (ภาษาไทย) <b class="text-red-500">*</b></label
       >
       <input
         type="text"
@@ -248,7 +249,7 @@
       <!--===============================================-->
 
       <label for="text" class="block text-lg font-medium mt-3"
-        >ชื่อโครงงาน (ภาษาอังกฤษ)</label
+        >ชื่อโครงงาน (ภาษาอังกฤษ) <b class="text-red-500">*</b></label
       >
       <input
         type="text"
@@ -260,7 +261,7 @@
 
       <!--===============================================-->
       <label for="text" class="block text-lg font-medium mt-3"
-        >ชื่อผู้เสนอโครงงาน
+        >ชื่อผู้เสนอโครงงาน <b class="text-red-500">*</b>
       </label>
       <button
         type="button"
@@ -289,7 +290,7 @@
       <!--===============================================-->
 
       <label for="email" class="block text-lg font-medium mt-3"
-        >อาจารย์ที่ปรึกษาโครงงาน
+        >อาจารย์ที่ปรึกษาโครงงาน <b class="text-red-500">*</b>
       </label>
       <select
         id="dropdown"
@@ -333,7 +334,7 @@
       />
 
       <label for="text" class="block text-lg font-medium mt-3"
-        >4. ที่มาและความสำคัญของปัญหา
+        >4. ที่มาและความสำคัญของปัญหา <b class="text-red-500">*</b>
       </label>
 
       <textarea
@@ -342,6 +343,7 @@
         rows="10"
         cols="50"
         class="w-full p-2"
+        required
         bind:value={project_problem}
         on:keydown={(event) =>
           handleTab(event, (value) => (project_problem = value))}
@@ -380,7 +382,7 @@
       ></textarea>
 
       <label for="text" class="block text-lg font-medium mt-3"
-        >7. ทฤษฎีและหลักการ
+        >7. ทฤษฎีและหลักการ <b class="text-red-500">*</b>
       </label>
       <textarea
         id="editor"
@@ -388,6 +390,7 @@
         rows="10"
         cols="50"
         class="w-full p-2"
+        required
         bind:value={Theory_principles}
         on:keydown={(event) =>
           handleTab(event, (value) => (Theory_principles = value))}
@@ -395,13 +398,14 @@
       ></textarea>
 
       <label class="block mt-2 text-sm font-medium" for="multiple_files"
-        >อัพโหลดรูปภาพ (ห้ามเกิน 2MB)</label
+        >อัพโหลดรูปภาพ (ห้ามเกิน 2MB) <b class="text-red-500">*</b></label
       >
       <input
         id="multiple_files"
         type="file"
         accept="image/*"
         multiple
+        required
         class="relative m-0 block w-full min-w-0 flex-auto cursor-pointer rounded border border-solid-black border-secondary-500 bg-transparent bg-clip-padding px-3 py-[0.32rem] text-base font-normal text-surface transition duration-300 ease-in-out file:-mx-3 file:-my-[0.32rem] file:me-3 file:cursor-pointer file:overflow-hidden file:rounded-none file:border-0 file:border-e file:border-solid file:border-inherit file:bg-transparent file:px-3 file:py-[0.32rem] file:text-surface focus:border-primary focus:text-gray-700 focus:shadow-inset focus:outline-none dark:border-black/70"
         on:change={handleFileSelect}
       />
