@@ -14,6 +14,8 @@
     uploadBytes,
     getDownloadURL,
   } from "firebase/storage";
+  import Loading from "../../loading.svelte";
+
   // @ts-ignore
   let project = null;
   let isNotFound = false;
@@ -559,6 +561,6 @@
       </form>
     </div>
   {:else}
-    <p>กำลังโหลดข้อมูล...</p>
+    <Loading />
   {/if}
 </div>
