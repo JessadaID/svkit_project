@@ -338,38 +338,66 @@
 
           <!--===============================================-->
 
-          <label for="email" class="block text-lg font-medium mt-3"
-            >อาจารย์ที่ปรึกษาโครงงาน <b class="text-red-500">*</b>
-          </label>
-          <select
-            id="dropdown"
-            name="adviser"
-            class="p-2 w-full"
-            multiple
-            required
-            size="4"
-            bind:value={project.adviser}
-          >
-            <option value="ผู้ช่วยศาสตราจารย์ อนันท์ ทับเกิด"
-              >ผู้ช่วยศาสตราจารย์ อนันท์ ทับเกิด</option
-            >
-            <option value="นายกิตตินันท์ น้อยมณี">นายกิตตินันท์ น้อยมณี</option>
-            <option value="ผู้ช่วยศาสตราจารย์ ขวัญชัย เอื้อวิริยานุกูล"
-              >ผู้ช่วยศาสตราจารย์ ขวัญชัย เอื้อวิริยานุกูล</option
-            >
-            <option value="นายจักรภพ ใหม่เสน">นายจักรภพ ใหม่เสน</option>
-            <option value="5นายณัฐชาสิทธิ์ ชูเกียรติขจร"
-              >นายณัฐชาสิทธิ์ ชูเกียรติขจร</option
-            >
-            <option value="นายปณต พุกกะพันธุ์">นายปณต พุกกะพันธุ์</option>
-            <option value="นายปิยพล ยืนยงสถาวร">นายปิยพล ยืนยงสถาวร</option>
-            <option value="นายพิชิต ทนันชัย">นายพิชิต ทนันชัย</option>
-            <option value="นางสาวยุพดี หัตถสิน">นางสาวยุพดี หัตถสิน</option>
-            <option value="นายสมนึก สุระธง">นายสมนึก สุระธง</option>
-            <option value="นายภาณุเดช ทิพย์อักษร">นายภาณุเดช ทิพย์อักษร</option>
-            <option value="นายอนุพงศ์ ไพโรจน์">นายอนุพงศ์ ไพโรจน์</option>
-            <option value="นายอรรถพล วิเวก">นายอรรถพล วิเวก</option>
-          </select>
+          
+      <label for="adviser" class="block text-lg font-medium mt-3">
+        อาจารย์ที่ปรึกษาโครงงาน <b class="text-red-500">*</b>
+      </label>
+      <div class="h-48 overflow-y-auto border rounded-md p-2 mt-2 bg-white">
+        <div class="space-y-2">
+          <div class="flex items-center">
+            <input type="checkbox" id="adviser1" bind:group={project.adviser} value="ผู้ช่วยศาสตราจารย์ อนันท์ ทับเกิด" class="w-4 h-4">
+            <label for="adviser1" class="ml-2">ผู้ช่วยศาสตราจารย์ อนันท์ ทับเกิด</label>
+          </div>
+          <div class="flex items-center">
+            <input type="checkbox" id="adviser2" bind:group={project.adviser} value="นายกิตตินันท์ น้อยมณี" class="w-4 h-4">
+            <label for="adviser2" class="ml-2">นายกิตตินันท์ น้อยมณี</label>
+          </div>
+          <div class="flex items-center">
+            <input type="checkbox" id="adviser3" bind:group={project.adviser} value="ผู้ช่วยศาสตราจารย์ ขวัญชัย เอื้อวิริยานุกูล" class="w-4 h-4">
+            <label for="adviser3" class="ml-2">ผู้ช่วยศาสตราจารย์ ขวัญชัย เอื้อวิริยานุกูล</label>
+          </div>
+          <div class="flex items-center">
+            <input type="checkbox" id="adviser4" bind:group={project.adviser} value="นายจักรภพ ใหม่เสน" class="w-4 h-4">
+            <label for="adviser4" class="ml-2">นายจักรภพ ใหม่เสน</label>
+          </div>
+          <div class="flex items-center">
+            <input type="checkbox" id="adviser5" bind:group={project.adviser} value="นายณัฐชาสิทธิ์ ชูเกียรติขจร" class="w-4 h-4">
+            <label for="adviser5" class="ml-2">นายณัฐชาสิทธิ์ ชูเกียรติขจร</label>
+          </div>
+          <div class="flex items-center">
+            <input type="checkbox" id="adviser6" bind:group={project.adviser} value="นายปณต พุกกะพันธุ์" class="w-4 h-4">
+            <label for="adviser6" class="ml-2">นายปณต พุกกะพันธุ์</label>
+          </div>
+          <div class="flex items-center">
+            <input type="checkbox" id="adviser7" bind:group={project.adviser} value="นายปิยพล ยืนยงสถาวร" class="w-4 h-4">
+            <label for="adviser7" class="ml-2">นายปิยพล ยืนยงสถาวร</label>
+          </div>
+          <div class="flex items-center">
+            <input type="checkbox" id="adviser8" bind:group={project.adviser} value="นายพิชิต ทนันชัย" class="w-4 h-4">
+            <label for="adviser8" class="ml-2">นายพิชิต ทนันชัย</label>
+          </div>
+          <div class="flex items-center">
+            <input type="checkbox" id="adviser9" bind:group={project.adviser} value="นางสาวยุพดี หัตถสิน" class="w-4 h-4">
+            <label for="adviser9" class="ml-2">นางสาวยุพดี หัตถสิน</label>
+          </div>
+          <div class="flex items-center">
+            <input type="checkbox" id="adviser10" bind:group={project.adviser} value="นายสมนึก สุระธง" class="w-4 h-4">
+            <label for="adviser10" class="ml-2">นายสมนึก สุระธง</label>
+          </div>
+          <div class="flex items-center">
+            <input type="checkbox" id="adviser11" bind:group={project.adviser} value="นายภาณุเดช ทิพย์อักษร" class="w-4 h-4">
+            <label for="adviser11" class="ml-2">นายภาณุเดช ทิพย์อักษร</label>
+          </div>
+          <div class="flex items-center">
+            <input type="checkbox" id="adviser12" bind:group={project.adviser} value="นายอนุพงศ์ ไพโรจน์" class="w-4 h-4">
+            <label for="adviser12" class="ml-2">นายอนุพงศ์ ไพโรจน์</label>
+          </div>
+          <div class="flex items-center">
+            <input type="checkbox" id="adviser13" bind:group={project.adviser} value="นายอรรถพล วิเวก" class="w-4 h-4">
+            <label for="adviser13" class="ml-2">นายอรรถพล วิเวก</label>
+          </div>
+        </div>
+      </div>
           <!--===============================================-->
 
           <label for="email" class="block text-lg font-medium mt-3"
