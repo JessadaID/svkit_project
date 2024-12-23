@@ -113,7 +113,7 @@
 
   function goToEditPage() {
     // ส่งข้อมูลไปยังหน้า edit (สามารถใช้ store หรือ localStorage ได้)
-    goto(`/cpe02/data/edit/${project.id}`); // นำทางไปหน้า /edit
+    goto(`/cpe02/data/edit/${data.id}`); // นำทางไปหน้า /edit
     //console.log(project.id)
   }
 
@@ -253,7 +253,7 @@
           </button>
           <button
             class="md:absolute top-14 right-2 bg-red-500 text-white px-4 py-2 rounded shadow hover:bg-blue-600"
-            on:click={() => deleteProject(project.id)}
+            on:click={() => deleteProject(data.id)}
             disabled={isLoading}
           >
             {isLoading ? "Loading..." : "ลบข้อมูล"}
