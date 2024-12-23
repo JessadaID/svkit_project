@@ -29,46 +29,49 @@
   let fileInput;
 
   onMount(async () => {
-    const isUserLoggedIn = await checkLoginStatus(); // รอผลลัพธ์จาก checkLoginStatus
+  try {
+    // ตรวจสอบสถานะการล็อกอิน
+    const isUserLoggedIn = await checkLoginStatus();
 
     if (isUserLoggedIn) {
-      email = getCookie("email"); // หรือใช้ cookies ถ้าต้องการ
+      // ดึงข้อมูล email และ role จาก cookies
+      email = getCookie("email");
       role = getCookie("role");
-      //console.log('User is logged in, Email:', email);
-      //console.log('User is logged in, Email:', role);
     } else {
       console.log("User not logged in. Redirecting to login...");
-      // ถ้าไม่ได้ล็อกอิน เปลี่ยนเส้นทางไปหน้า Login
       goto("/login");
+      return;
     }
 
-      try {
-        const projectDoc = await getDoc(doc(db, 'project-approve', data.id));
-        if (projectDoc.exists()) {
-          project = projectDoc.data();
-          // ตรวจสอบว่า project.id ตรงกับ data.id หรือไม่
-          if (project.id !== data.id) {
-            isNotFound = true;
-            console.log("Project ID mismatch. Marking as not found.");
-          }
-        } else {
-          console.error("Project not found in Firestore.");
-        }
-      } catch (error) {
-        console.error("Error fetching project data from Firestore:", error);
+    // ดึงข้อมูลโปรเจกต์จาก Firestore
+    try {
+      const projectDoc = await getDoc(doc(db, "project-approve", data.id));
+      if (projectDoc.exists()) {
+        project = projectDoc.data();
+        //console.log("Project data fetched successfully:", project);
+      } else {
+        console.error("Project not found in Firestore.");
+        isNotFound = true;
+        return;
       }
-   
-    if (role != "admin") {
-      if (email !== project.email || email == null) {
+    } catch (error) {
+      console.error("Error fetching project data from Firestore:", error);
+      return;
+    }
+
+    // ตรวจสอบสิทธิ์การเข้าถึง
+    if (role !== "admin") {
+      if (email !== project.email || !email) {
+        console.log("Access denied. Redirecting to restricted page...");
         goto("../../hacker_exe");
+        return;
       }
     }
+  } catch (error) {
+    console.error("Error during onMount process:", error);
+  }
+});
 
-    // ตรวจสอบค่า email และ role
-    //console.log("project email from cookies:", project.email);
-    //console.log("Email from cookies:", email);
-    //console.log("Role from cookies:", role);
-  });
 
   function addMemberRow() {
     // @ts-ignore
@@ -99,7 +102,7 @@
       }
 
       // Your existing Firestore update code
-      const docRef = doc(db, "project-approve", project.id);
+      const docRef = doc(db, "project-approve", data.id);
       const updatedTasks = { ...project.Tasks };
       Object.keys(updatedTasks).forEach((key) => {
         if (updatedTasks[key].status !== "approve") {
@@ -121,7 +124,6 @@
       isLoading = false;
     }
 
-    localStorage.setItem("selectedProject", JSON.stringify(project));
   }
 
   function handleTab(event, bindVariableSetter) {
@@ -163,7 +165,7 @@
       project.images = project.images.filter((_, i) => i !== index);
 
       // อัปเดตเอกสารของโปรเจกต์ใน Firestore
-      const docRef = doc(db, "project-approve", project.id);
+      const docRef = doc(db, "project-approve", data.id);
       await setDoc(docRef, project);
 
       alert("ลบรูปภาพเรียบร้อยแล้ว");
