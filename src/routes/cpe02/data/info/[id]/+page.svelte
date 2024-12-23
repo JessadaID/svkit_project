@@ -15,7 +15,8 @@
   import { db } from "$lib/firebase.js";
   import { checkLoginStatus } from "../../../../../auth";
   import { getCookie } from "cookies-next";
-
+  import Loading from "../../loading.svelte";
+  
   let email = "";
   let project = null;
     let project_local = null;
@@ -365,7 +366,7 @@
     </div>
   </div>
 {:else}
-  <p>กำลังโหลดข้อมูล...</p>
+<Loading />
 {/if}
 
 <!-- Add Modal component at the bottom of your template -->
