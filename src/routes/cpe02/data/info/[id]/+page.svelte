@@ -242,7 +242,11 @@
             <p>{imageUrl.title}</p>
           </div>
       {/each}
+
+      
     </div>
+    <p class="mt-2"><b>8. ขอบเขต </b></p>
+      <p style="white-space: pre-wrap;">{project.scope}</p>
 
       {#if (role === "admin" || email === project.email) && email != null}
         <div class="flex justify-around mt-5">
