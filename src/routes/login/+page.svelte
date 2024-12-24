@@ -4,39 +4,33 @@
   import { doc, getDoc } from "firebase/firestore";
   import { goto } from "$app/navigation";
   import { setLoginCookies,clearLoginCookies } from '../../auth';
+  import { getCookie } from "cookies-next";
+  
   let email = "";
   let password = "";
   let user = null;
   let role = null;
   let loading = false;
 
-async function login() {
+
+  async function login() {
     try {
         loading = true;
-
-        // ล็อกอินผู้ใช้
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
+        user = userCredential.user; // เพิ่มการอัพเดท user state
 
-        // ดึงข้อมูลผู้ใช้จาก Firestore
         const userDocRef = doc(db, "users", user.uid);
         const userDocSnap = await getDoc(userDocRef);
 
         if (userDocSnap.exists()) {
             const userData = userDocSnap.data();
-            const role = userData.role;
-
-            // เก็บข้อมูลใน Cookies
+            role = userData.role; // เพิ่มการอัพเดท role state
             setLoginCookies(email, role);
-
-            // นำทางไปยังหน้า /cpe02
             goto('/cpe02');
-        } else {
-            alert('ไม่พบข้อมูลผู้ใช้ใน Firestore');
         }
     } catch (error) {
         console.error('Error during login:', error);
-        alert(`ล็อกอินไม่สำเร็จ: ${error.message}`);
+        alert(error.message);
     } finally {
         loading = false;
     }

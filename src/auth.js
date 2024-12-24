@@ -8,17 +8,18 @@ import { getAuth, onAuthStateChanged } from 'firebase/auth';
 export function setLoginCookies(email, role) {
     setCookie('email', email, {
         path: '/',
-        maxAge: 60 * 60 * 24, // อายุ Cookies 1 วัน
+        maxAge: 60 * 60 * 4, // อายุ Cookies 4 ชม.
         secure: true,
         sameSite: 'strict',
     });
 
     setCookie('role', role, {
         path: '/',
-        maxAge: 60 * 60 * 24,
+        maxAge: 60 * 60 * 4,
         secure: true,
         sameSite: 'strict',
     });
+    //console.log('Cookies have been set:', { email, role });
 }
 
 /**
@@ -27,6 +28,7 @@ export function setLoginCookies(email, role) {
 export function clearLoginCookies() {
     deleteCookie('email', { path: '/' });
     deleteCookie('role', { path: '/' });
+    //console.log('Cookies have been clear');
 }
 
 /**

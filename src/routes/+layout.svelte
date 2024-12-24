@@ -3,8 +3,8 @@
   import { auth } from "$lib/firebase"; // นำเข้า Firebase Auth ที่ตั้งค่าไว้
   import { onAuthStateChanged, signOut } from "firebase/auth";
   import { goto } from "$app/navigation";
-  import { deleteCookie, getCookie } from "cookies-next";
-
+  import { getCookie } from "cookies-next";
+  import { clearLoginCookies } from "../auth";
   let isLoggedIn = false;
   let currentUser = null;
   let isMenuOpen = false;
@@ -17,24 +17,21 @@
     const email = getCookie("email");
     const role = getCookie("role");
 
-    // ถ้าไม่มี email หรือ role ใน cookie ให้ทำการ logout
+    //console.log("Checking cookies:", { email, role });
+
     if (!email || !role) {
+      console.warn("Missing cookies. Logging out.");
       logout();
       return false;
     }
     return true;
   }
 
-  // ตรวจสอบสถานะการล็อกอินผ่าน Firebase
-  // ตรวจสอบสถานะการล็อกอินผ่าน Firebase และ cookies
   onMount(() => {
     onAuthStateChanged(auth, (user) => {
       if (user) {
-        // ตรวจสอบ cookie เมื่อมีการ login
-        if (checkAuthStatus()) {
-          isLoggedIn = true;
-          currentUser = user;
-        }
+        isLoggedIn = true;
+        currentUser = user;
       } else {
         isLoggedIn = false;
         currentUser = null;
@@ -52,19 +49,18 @@
     return () => clearInterval(intervalId);
   });
 
- // ฟังก์ชัน Logout
-async function logout() {
-  try {
-    await signOut(auth);
-    isLoggedIn = false;
-    // ลบ cookies
-    deleteCookie("email");
-    deleteCookie("role");
-    goto("/cpe02");
-  } catch (error) {
-    console.error("Error logging out:", error);
+  // ฟังก์ชัน Logout
+  async function logout() {
+    try {
+      await signOut(auth);
+      isLoggedIn = false;
+      // ลบ cookies
+      clearLoginCookies();
+      goto("/cpe02");
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
   }
-}
 </script>
 
 <nav
