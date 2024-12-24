@@ -544,6 +544,22 @@
               <!-- Delete button -->
             {/each}
           </div>
+
+          <label for="text" class="block text-lg font-medium mt-3"
+            >8. ขอบเขต <b class="text-red-500">*</b>
+          </label>
+          <textarea
+            id="editor"
+            name="w3review"
+            rows="10"
+            cols="50"
+            class="w-full p-2"
+            required
+            bind:value={project.scope}
+            on:keydown={(event) =>
+              handleTab(event, (value) => (project.scope = value))}
+            placeholder="งานวิจัยที่เกี่ยวข้อง"
+          ></textarea>
         </div>
         <!--===============================================-->
 

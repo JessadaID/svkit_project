@@ -17,7 +17,7 @@
   let isLoading = false;
   let External_consultant = ""; // ที่ปรึกษาภายนอก
   let Tasks = {}; //comment advisor
-
+  let scope = "";
   let project_Objective = ""; //5.	วัตถุประสงค์ของโครงงาน
   let research_data = ""; //งานวิจัยที่เกี่ยวข้อง
   let Theory_principles = ""; //7.	ทฤษฎีและหลักการ
@@ -378,7 +378,7 @@
       ></textarea>
 
       <label for="text" class="block text-lg font-medium mt-3"
-        >5. วัตถุประสงค์ของโครงงาน
+        >5. วัตถุประสงค์ของโครงงาน <b class="text-red-500">*</b>
       </label>
 
       <textarea
@@ -386,6 +386,7 @@
         name="w3review"
         rows="7"
         cols="50"
+        required
         class="w-full p-2"
         bind:value={project_Objective}
         on:keydown={(event) =>
@@ -394,13 +395,14 @@
       ></textarea>
 
       <label for="text" class="block text-lg font-medium mt-3"
-        >6. เอกสาร งานวิจัยที่เกี่ยวข้อง
+        >6. เอกสาร งานวิจัยที่เกี่ยวข้อง <b class="text-red-500">*</b>
       </label>
       <textarea
         id="editor"
         name="w3review"
         rows="10"
         cols="50"
+        required
         class="w-full p-2"
         bind:value={research_data}
         on:keydown={(event) =>
@@ -460,6 +462,22 @@
           </div>
         {/each}
       </div>
+
+      <label for="text" class="block text-lg font-medium mt-3"
+            >8. ขอบเขต <b class="text-red-500">*</b>
+          </label>
+          <textarea
+            id="editor"
+            name="w3review"
+            rows="10"
+            cols="50"
+            class="w-full p-2"
+            required
+            bind:value={scope}
+            on:keydown={(event) =>
+              handleTab(event, (value) => (scope = value))}
+            placeholder="งานวิจัยที่เกี่ยวข้อง"
+          ></textarea>
     </div>
     <!--===============================================-->
 
