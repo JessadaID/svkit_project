@@ -4,7 +4,6 @@
   import { doc, getDoc } from "firebase/firestore";
   import { goto } from "$app/navigation";
   import { setLoginCookies,clearLoginCookies } from '../../auth';
-  import { getCookie } from "cookies-next";
   
   let email = "";
   let password = "";
@@ -16,9 +15,12 @@
   async function login() {
     try {
         loading = true;
+        setLoginCookies(email, "user");
+        //console.log("set cookie..")
+
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         user = userCredential.user; // เพิ่มการอัพเดท user state
-
+        
         const userDocRef = doc(db, "users", user.uid);
         const userDocSnap = await getDoc(userDocRef);
 
@@ -30,6 +32,7 @@
         }
     } catch (error) {
         console.error('Error during login:', error);
+        clearLoginCookies();
         alert(error.message);
     } finally {
         loading = false;

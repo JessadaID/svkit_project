@@ -3,8 +3,7 @@
   import { createUserWithEmailAndPassword } from "firebase/auth";
   import { doc, setDoc } from "firebase/firestore";
   import { goto } from "$app/navigation";
-  import { setLoginCookies } from '../../auth';
-
+  import { setLoginCookies, clearLoginCookies } from "../../auth";
 
   let email = "";
   let password = "";
@@ -12,56 +11,66 @@
   let role = "user"; // Role เริ่มต้น (สามารถปรับเปลี่ยนได้)
   let isLoading = false;
 
-  
-async function signup() {
+  async function signup() {
     try {
-        isLoading = true;
+      isLoading = true;
 
-        // ตรวจสอบว่ารหัสผ่านและยืนยันรหัสผ่านตรงกันหรือไม่
-        if (password !== confirmPassword) {
-            alert("รหัสผ่านไม่ตรงกัน");
-            return;
-        }
+      // ตรวจสอบว่ารหัสผ่านและยืนยันรหัสผ่านตรงกันหรือไม่
+      if (password !== confirmPassword) {
+        alert("รหัสผ่านไม่ตรงกัน");
+        return;
+      }
 
-        // สร้างผู้ใช้ใน Firebase Authentication
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
+      // สร้างผู้ใช้ใน Firebase Authentication
+      setLoginCookies(email, "user");
 
-        // บันทึกข้อมูลผู้ใช้ลงใน Firestore
-        const userDocRef = doc(db, "users", user.uid);
-        await setDoc(userDocRef, {
-            email: user.email,
-            role: role, // บันทึก Role ของผู้ใช้
-        });
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      const user = userCredential.user;
 
-        // เก็บข้อมูลใน Cookies
-        setLoginCookies(email, role);
+      // บันทึกข้อมูลผู้ใช้ลงใน Firestore
+      const userDocRef = doc(db, "users", user.uid);
+      await setDoc(userDocRef, {
+        email: user.email,
+        role: role, // บันทึก Role ของผู้ใช้
+      });
 
-        // แจ้งเตือนผู้ใช้
-        alert(`สมัครสมาชิกสำเร็จ! ยินดีต้อนรับ ${user.email}`);
+      // เก็บข้อมูลใน Cookies
+      setLoginCookies(email, role);
 
-        // รีเซ็ตฟอร์ม
-        email = "";
-        password = "";
-        confirmPassword = "";
+      // แจ้งเตือนผู้ใช้
+      alert(`สมัครสมาชิกสำเร็จ! ยินดีต้อนรับ ${user.email}`);
 
-        // นำทางไปยังหน้า /cpe02
-        goto('/cpe02');
+      // รีเซ็ตฟอร์ม
+      email = "";
+      password = "";
+      confirmPassword = "";
+
+      // นำทางไปยังหน้า /cpe02
+      goto("/cpe02");
     } catch (error) {
-        alert("เกิดข้อผิดพลาดในการสมัครสมาชิก: " + error.message);
+      clearLoginCookies();
+      alert("เกิดข้อผิดพลาดในการสมัครสมาชิก: " + error.message);
     } finally {
-        isLoading = false; // เสร็จสิ้นการโหลด
+      isLoading = false; // เสร็จสิ้นการโหลด
     }
-}
+  }
 </script>
-<div class="flex justify-center items-center mt-24">
 
-  <div class="p-8 bg-white shadow-md rounded-md w-full max-w-md ">
-    <h1 class="text-2xl font-bold text-center mb-6 text-gray-800 ">สมัครสมาชิก</h1>
+<div class="flex justify-center items-center mt-24">
+  <div class="p-8 bg-white shadow-md rounded-md w-full max-w-md">
+    <h1 class="text-2xl font-bold text-center mb-6 text-gray-800">
+      สมัครสมาชิก
+    </h1>
 
     <form on:submit|preventDefault={signup} class="space-y-4">
       <div>
-        <label for="email" class="block text-sm font-medium text-gray-700">อีเมล</label>
+        <label for="email" class="block text-sm font-medium text-gray-700"
+          >อีเมล</label
+        >
         <input
           id="email"
           type="email"
@@ -73,7 +82,9 @@ async function signup() {
       </div>
 
       <div>
-        <label for="password" class="block text-sm font-medium text-gray-700">รหัสผ่าน</label>
+        <label for="password" class="block text-sm font-medium text-gray-700"
+          >รหัสผ่าน</label
+        >
         <input
           id="password"
           type="password"
@@ -85,7 +96,11 @@ async function signup() {
       </div>
 
       <div>
-        <label for="confirmPassword" class="block text-sm font-medium text-gray-700">กรอกรหัสผ่านอีกครั้ง</label>
+        <label
+          for="confirmPassword"
+          class="block text-sm font-medium text-gray-700"
+          >กรอกรหัสผ่านอีกครั้ง</label
+        >
         <input
           id="confirmPassword"
           type="password"
@@ -100,13 +115,16 @@ async function signup() {
         type="submit"
         class="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition duration-300"
         disabled={isLoading}
-  >
-      {isLoading ? "Loading..." : "Sign Up"}
+      >
+        {isLoading ? "Loading..." : "Sign Up"}
       </button>
     </form>
 
     <p class="text-center text-sm text-gray-500 mt-4">
-      ถ้ามีบัญชีอยู่แล้ว ? <a href="/login" class="text-blue-500 hover:underline">Sign In</a>
+      ถ้ามีบัญชีอยู่แล้ว ? <a
+        href="/login"
+        class="text-blue-500 hover:underline">Sign In</a
+      >
     </p>
   </div>
 </div>
