@@ -30,8 +30,11 @@
   onMount(() => {
     onAuthStateChanged(auth, (user) => {
       if (user) {
-        isLoggedIn = true;
-        currentUser = user;
+        if (checkAuthStatus()) {
+          isLoggedIn = true;
+          currentUser = user;
+        }
+        //console.log("state change")
       } else {
         isLoggedIn = false;
         currentUser = null;
@@ -56,7 +59,7 @@
       isLoggedIn = false;
       // ลบ cookies
       clearLoginCookies();
-      goto("/cpe02");
+      goto("/login");
     } catch (error) {
       console.error("Error logging out:", error);
     }

@@ -8,14 +8,16 @@ import { getAuth, onAuthStateChanged } from 'firebase/auth';
 export function setLoginCookies(email, role) {
     setCookie('email', email, {
         path: '/',
-        maxAge: 60 * 60 * 4, // อายุ Cookies 4 ชม.
+        //maxAge: 60 * 60 * 3, // อายุ Cookies 3 ชม.
+        maxAge: 60 * 60 * 3, // อายุ Cookies 3 ชม.
         secure: true,
         sameSite: 'strict',
     });
 
     setCookie('role', role, {
         path: '/',
-        maxAge: 60 * 60 * 4,
+        //maxAge: 60 * 60 * 3,
+        maxAge: 60 * 60 * 3,
         secure: true,
         sameSite: 'strict',
     });
