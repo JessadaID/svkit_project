@@ -98,7 +98,8 @@
         project_Objective,
         research_data,
         Theory_principles,
-        images: imageUrls, // เพิ่ม array ของ URL รูปภาพ
+        images: imageUrls,// เพิ่ม array ของ URL รูปภาพ
+        scope, 
       });
 
       alert(`เพิ่มข้อมูลสำเร็จ!`);
@@ -116,6 +117,7 @@
       Theory_principles = "";
       selectedFiles = [];
       imagePreviews = [];
+      scope = "";
       goto("../cpe02")
     } catch (error) {
       console.error("Error adding document: ", error);
