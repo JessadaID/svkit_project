@@ -3,64 +3,72 @@
   import { signInWithEmailAndPassword, signOut } from "firebase/auth";
   import { doc, getDoc } from "firebase/firestore";
   import { goto } from "$app/navigation";
-  import { setLoginCookies,clearLoginCookies } from '../../auth';
-  
+  import { setLoginCookies, clearLoginCookies } from "../../auth";
+
   let email = "";
   let password = "";
   let user = null;
   let role = null;
   let loading = false;
 
-
   async function login() {
     try {
-        loading = true;
-        setLoginCookies(email, "user");
-        //console.log("set cookie..")
+      loading = true;
+      setLoginCookies(email, "user");
+      //console.log("set cookie..")
 
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        user = userCredential.user; // เพิ่มการอัพเดท user state
-        
-        const userDocRef = doc(db, "users", user.uid);
-        const userDocSnap = await getDoc(userDocRef);
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      user = userCredential.user; // เพิ่มการอัพเดท user state
 
-        if (userDocSnap.exists()) {
-            const userData = userDocSnap.data();
-            role = userData.role; // เพิ่มการอัพเดท role state
-            setLoginCookies(email, role);
-            goto('/cpe02');
+      const userDocRef = doc(db, "users", user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+
+      if (userDocSnap.exists()) {
+        const userData = userDocSnap.data();
+        role = userData.role; // เพิ่มการอัพเดท role state
+        setLoginCookies(email, role);
+
+        if (role == "admin") {
+          goto("/Dashboard");
+        } else {
+          goto("/cpe02");
         }
+      }
     } catch (error) {
-        console.error('Error during login:', error);
-        clearLoginCookies();
-        alert(error.message);
+      console.error("Error during login:", error);
+      clearLoginCookies();
+      alert(error.message);
     } finally {
-        loading = false;
+      loading = false;
     }
-}
+  }
 
-async function logout() {
+  async function logout() {
     try {
-        // ทำการ Sign Out จาก Firebase Authentication
-        await signOut(auth);
+      // ทำการ Sign Out จาก Firebase Authentication
+      await signOut(auth);
 
-        // ล้างข้อมูลผู้ใช้
-        user = null;
-        role = null;
+      // ล้างข้อมูลผู้ใช้
+      user = null;
+      role = null;
 
-        // ลบข้อมูลจาก Cookies
-        clearLoginCookies();
+      // ลบข้อมูลจาก Cookies
+      clearLoginCookies();
 
-        // แสดงข้อความแจ้งเตือนการออกจากระบบ
-        alert('ออกจากระบบสำเร็จ');
+      // แสดงข้อความแจ้งเตือนการออกจากระบบ
+      alert("ออกจากระบบสำเร็จ");
 
-        // เปลี่ยนเส้นทางไปยังหน้า Login
-        goto('/login');
+      // เปลี่ยนเส้นทางไปยังหน้า Login
+      goto("/login");
     } catch (error) {
-        // แสดงข้อผิดพลาดหากเกิดขึ้น
-        alert('เกิดข้อผิดพลาด: ' + error.message);
+      // แสดงข้อผิดพลาดหากเกิดขึ้น
+      alert("เกิดข้อผิดพลาด: " + error.message);
     }
-}
+  }
 </script>
 
 <div class="flex justify-center items-center mt-40">
@@ -105,16 +113,6 @@ async function logout() {
         </button>
       </form>
     {:else}
- 
-      {#if role === "admin"}
-        <p class="text-center text-gray-700 mt-2">คุณเป็นผู้ดูแลระบบ (Admin)</p>
-      {:else if role === "user"}
-        <p class="text-center text-gray-700 mt-2">
-          คุณเป็นผู้ใช้งานทั่วไป (User)
-        </p>
-      {:else}
-        <p class="text-center text-gray-700 mt-2">สิทธิ์ของคุณไม่ถูกต้อง</p>
-      {/if}
       <button
         on:click={logout}
         class="w-full bg-red-500 text-white py-2 rounded-md hover:bg-red-600 transition mt-5"
@@ -129,3 +127,41 @@ async function logout() {
     </p>
   </div>
 </div>
+
+
+<div class="custom-shape-divider-bottom-1737443007 hidden md:block">
+  <svg
+    data-name="Layer 1"
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 1200 120"
+    preserveAspectRatio="none"
+  >
+    <path d="M1200 120L0 16.48 0 0 1200 0 1200 120z" class="shape-fill"></path>
+  </svg>
+</div>
+
+<style>
+  .custom-shape-divider-bottom-1737443007 {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    overflow: hidden;
+    line-height: 0;
+    transform: rotate(180deg);
+    z-index: -1;
+
+}
+
+.custom-shape-divider-bottom-1737443007 svg {
+    position: relative;
+    display: block;
+    width: calc(300% + 1.3px);
+    height: 369px;
+    transform: rotateY(180deg);
+}
+
+.custom-shape-divider-bottom-1737443007 .shape-fill {
+    fill: #4FAD4E;
+}
+</style>
