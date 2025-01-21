@@ -10,16 +10,17 @@
     doc,
     getDoc,
     deleteDoc,
-    updateDoc,
   } from "firebase/firestore";
-  import { db } from "$lib/firebase.js";
+  import { ref, deleteObject } from 'firebase/storage';
+  import { db,storage } from "$lib/firebase.js";
   import { checkLoginStatus } from "../../../../../auth";
   import { getCookie } from "cookies-next";
   import Loading from "../../loading.svelte";
-  
+  import Process from "./Process.svelte";
+
   let email = "";
   let project = null;
-    let project_local = null;
+  let project_local = null;
   let isNotFound = false;
   let role = "";
   let isLoading = true;
@@ -118,75 +119,58 @@
     //console.log(project.id)
   }
 
-  async function deleteProject(id) {
-    if (confirm("คุณต้องการลบข้อมูลนี้หรือไม่?")) {
-      isLoading = true;
-
-      try {
-        // อ้างอิงถึงเอกสารที่ต้องการลบ
-        const docRef = doc(db, "project-approve", id);
-
-        // ลบเอกสาร
-        await deleteDoc(docRef);
-
-        alert("ลบข้อมูลเรียบร้อยแล้ว!");
-        goto(`/cpe02/data`);
-      } catch (error) {
-        console.error("เกิดข้อผิดพลาดในการลบ:", error);
-        alert("ไม่สามารถลบข้อมูลได้");
-      } finally {
-        isLoading = false;
-      }
-    }
-  }
-
-  // ฟังก์ชัน toggle
-  function toggleTask(index) {
-    visibleStates[index] = !visibleStates[index];
-  }
-  function isOverdue(dueDate) {
-    const today = new Date(); // วันที่ปัจจุบัน
-    //console.log(today);
-    const due = new Date(dueDate); // วันที่กำหนดส่ง
-    return today > due; // คืนค่า true ถ้าเลยกำหนด
-  }
-
-  function updateStatus(event, index) {
-    status[index] = event.target.value; // อัปเดตค่าใน status ตามที่เลือก
-    //console.log(`Task ${index + 1}: ${status[index]}`); // แสดงค่าที่เลือกใน status
-  }
-
-  async function addTask(index, comment, status) {
-    const projectDocRef = doc(db, "project-approve", data.id);
-
-    // สร้าง Task ใหม่จาก index
-    const taskKey = `Tasks.${index}`;
-    const newTask = {
-      comment: comment[index] || "", // ดึงค่า comment ตาม index
-      status: status[index], // ดึงค่า status ตาม index
-    };
+  
+async function deleteProject(id) {
+  if (confirm("คุณต้องการลบข้อมูลนี้หรือไม่?")) {
+    let isLoading = true;
 
     try {
-      isLoadingtext = true;
-      await updateDoc(projectDocRef, {
-        [taskKey]: newTask, // ใช้ dot notation ในการอัปเดต
-      });
-      alert("ดำเนินการเรียบร้อยแล้ว!");
-      //console.log("Task added successfully!");
+      // 1. ดึงข้อมูลโครงการก่อนลบ เพื่อเอา URLs ของรูปภาพ
+      const docRef = doc(db, "project-approve", id);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const projectData = docSnap.data();
+        
+        // 2. ลบรูปภาพทั้งหมดใน Storage
+        if (projectData.images && Array.isArray(projectData.images)) {
+          const deletePromises = projectData.images.map(async (image) => {
+            if (image.url) {
+              // แปลง URL เป็น path ใน Storage
+              const urlPath = decodeURIComponent(image.url);
+              const storagePath = urlPath.split('/o/')[1].split('?')[0];
+              
+              // สร้าง reference ไปยังไฟล์ใน Storage
+              const imageRef = ref(storage, storagePath);
+              
+              try {
+                await deleteObject(imageRef);
+                console.log(`ลบรูปภาพสำเร็จ: ${image.name}`);
+              } catch (error) {
+                console.error(`ไม่สามารถลบรูปภาพ ${image.name}:`, error);
+              }
+            }
+          });
+
+          // รอให้ลบรูปภาพทั้งหมดเสร็จ
+          await Promise.all(deletePromises);
+        }
+
+        // 3. ลบเอกสารใน Firestore
+        await deleteDoc(docRef);
+        
+        alert("ลบข้อมูลและรูปภาพเรียบร้อยแล้ว!");
+        goto(`/cpe02/data`);
+      }
     } catch (error) {
-      console.error("Error adding task: ", error);
+      console.error("เกิดข้อผิดพลาดในการลบ:", error);
+      alert("ไม่สามารถลบข้อมูลได้");
     } finally {
-      isLoadingtext = false;
+      isLoading = false;
     }
   }
+}
 
-  function formatDate(dateString) {
-    const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0'); // เดือนเริ่มต้นที่ 0
-    const year = date.getFullYear();
-    return `${day}-${month}-${year}`;
-  }
 </script>
 
 {#if isNotFound}
@@ -227,8 +211,7 @@
       <p class="mt-2"><b>7. ทฤษฎีและหลักการ </b></p>
       <p style="white-space: pre-wrap;">{project.Theory_principles}</p>
       <div class="grid grid-cols-2">
-
-      {#each project.images as imageUrl}
+        {#each project.images as imageUrl}
           <!-- svelte-ignore a11y_click_events_have_key_events -->
           <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
           <!-- svelte-ignore a11y_img_redundant_alt -->
@@ -241,11 +224,9 @@
             />
             <p>{imageUrl.title}</p>
           </div>
-      {/each}
-
-      
-    </div>
-    <p class="mt-2"><b>8. ขอบเขต </b></p>
+        {/each}
+      </div>
+      <p class="mt-2"><b>8. ขอบเขต </b></p>
       <p style="white-space: pre-wrap;">{project.scope}</p>
 
       {#if (role === "admin" || email === project.email) && email != null}
@@ -265,112 +246,70 @@
           </button>
         </div>
       {/if}
-    </div>
-
-    <div
-      class="md:m-5 p-3 md:bg-gray-200 rounded md:shadow-lg md:w-4/12 bg-gray-200"
-    >
-      <b class="m-2">ความคืบหน้า เทอม : {project.term}</b>
-      <!-- UI -->
-      <div>
-        <!-- ส่วน UI ที่คุณมีอยู่แล้ว แต่เพิ่ม event handlers -->
-        {#if isLoading != true}
-          {#if Task.length > 0}
-            {#each Task as task, index}
-              <div class="bg-slate-400 relative p-4 mb-4 rounded-md">
-                <h1><b>{task.title}</b></h1>
-                <p>{task.description}</p>
-                {#if project.Tasks[index]?.status == "wait"}
-                  <p
-                    class="text-sky-500 bg-white inline-block px-2 mt-2 rounded"
-                  >
-                    รออนุมัติ
-                  </p>
-                {:else if project.Tasks[index]?.status == "improvement"}
-                  <p
-                    class="text-amber-500 bg-white inline-block px-2 mt-2 rounded"
-                  >
-                    แก้ไข
-                  </p>
-                {:else if project.Tasks[index]?.status == "approve"}
-                  <p
-                    class="text-green-500 bg-white inline-block px-2 mt-2 rounded"
-                  >
-                    อนุมัติ
-                  </p>
-                {/if}
-                <p>กำหนดส่ง : {formatDate(task.dueDate)}</p>
-                {#if isOverdue(task.dueDate)}
-                  <p class="text-red-600 font-bold mt-2">เกินกำหนดส่งแล้ว!</p>
-                {/if}
-                <button
-                  type="button"
-                  class="absolute top-0 right-0 bg-white p-2 m-2 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer"
-                  on:click={() => toggleTask(index)}
+      {#if project.Method_of_operation != null}
+      <div class="max-w-5xl mx-auto py-4">
+        <div class="overflow-x-auto">
+          <table class="w-full border-collapse border border-gray-300">
+            <thead>
+              <tr class="bg-gray-100">
+                <th class="border border-gray-300 p-2 w-1/4">กิจกรรม</th>
+                <th
+                  class="border border-gray-300 p-2"
+                  colspan={project.Method_of_operation.monthLabels.length + 1}
                 >
-                  {visibleStates[index] ? "▲" : "▼"}
-                </button>
-
-                {#if visibleStates[index]}
-                  <div class="mt-5 bg-gray-100 p-4 rounded-md">
-                    <b>ความคิดเห็นของอาจารย์</b>
-                    <textarea
-                      class="w-full p-2"
-                      rows="5"
-                      readonly={!can_edit}
-                      bind:value={comment[index]}
-                    ></textarea>
-                    {#if role === "advisor"}
-                      <input
-                        type="radio"
-                        id="improvement-{index}"
-                        name="status-{index}"
-                        value="improvement"
-                        checked={status[index] === "improvement"}
-                        on:change={(event) => updateStatus(event, index)}
-                      />
-                      <label for="improvement-{index}">แก้ไข</label><br />
-
-                      <input
-                        type="radio"
-                        id="approve-{index}"
-                        name="status-{index}"
-                        value="approve"
-                        checked={status[index] === "approve"}
-                        on:change={(event) => updateStatus(event, index)}
-                      />
-                      <label for="approve-{index}">ผ่าน</label><br />
-                      <button
-                        class="bg-red-500 w-full mt-5 p-2 text-white"
-                        on:click={() => {
-                          //console.log(index, comment[index], status[index]);
-                          addTask(index, comment, status);
-                        }}
-                        disabled={isLoadingtext}
-                      >
-                        {isLoadingtext ? "Loading..." : "ยืนยัน"}
-                      </button>
-                    {/if}
+                  <div class="flex items-center justify-between px-2">
+                    <p class="flex-1 p-1 text-center bg-transparent">
+                      {project.Method_of_operation.tableTitle}
+                    </p>
                   </div>
-                {/if}
-              </div>
-            {/each}
-          {:else}
-            <div class="text-center bg-gray-200 p-5 rounded-md">
-              <h1 class="text-lg font-bold text-red-500">ไม่พบข้อมูล</h1>
-              <p>ไม่มีข้อมูลที่จะแสดงในขณะนี้</p>
-            </div>
-          {/if}
-        {:else}
-          <div class="text-center bg-gray-200 p-5 rounded-md">
-            <p>Loading...</p>
-          </div>
-        {/if}
+                </th>
+              </tr>
+              <tr class="bg-gray-50">
+                <th class="border border-gray-300 p-2"></th>
+                {#each project.Method_of_operation.monthLabels as month, i}
+                  <th class="border border-gray-300 p-2">
+                    <div class="flex items-center justify-between">
+                      <p class="w-full p-1 text-center bg-transparent">
+                        {project.Method_of_operation.monthLabels[i]}
+                      </p>
+                    </div>
+                  </th>
+                {/each}
+              </tr>
+            </thead>
+            <tbody class="bg-white">
+              {#each project.Method_of_operation.activities as activity (activity.id)}
+                <tr>
+                  <td class="border border-gray-300 p-2">
+                    <div class="flex items-center space-x-2">
+                        
+                      <p class="w-full p-1 rounded">
+                        {activity.name}
+                      </p>
+                    </div>
+                  </td>
+                  {#each project.Method_of_operation.monthLabels as month}
+                    <td
+                      class="border border-gray-300 p-2 text-center"
+                      style:background-color={activity.months[month]
+                        ? activity.color
+                        : "transparent"}
+                    >
+                    </td>
+                  {/each}
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
       </div>
+      {/if}
     </div>
+
+    <Process project={project} isLoading={isLoading} can_edit={can_edit} Task={Task} isLoadingtext={isLoadingtext} visibleStates={visibleStates} status={status} data={data} db={db} comment={comment} role={role}/>
   </div>
 {:else}
-<Loading />
+  <Loading />
 {/if}
 
 <!-- Add Modal component at the bottom of your template -->

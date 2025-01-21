@@ -60,7 +60,7 @@
   }
 </script>
 
-<div class="flex justify-center items-center mt-24">
+<div class="flex justify-center items-center mt-24 z-10">
   <div class="p-8 bg-white shadow-md rounded-md w-full max-w-md">
     <h1 class="text-2xl font-bold text-center mb-6 text-gray-800">
       สมัครสมาชิก
@@ -128,3 +128,40 @@
     </p>
   </div>
 </div>
+
+<div class="custom-shape-divider-bottom-1737443007 hidden md:block">
+  <svg
+    data-name="Layer 1"
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 1200 120"
+    preserveAspectRatio="none"
+  >
+    <path d="M1200 120L0 16.48 0 0 1200 0 1200 120z" class="shape-fill"></path>
+  </svg>
+</div>
+
+<style>
+  .custom-shape-divider-bottom-1737443007 {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    overflow: hidden;
+    line-height: 0;
+    transform: rotate(180deg);
+    z-index: -1;
+
+}
+
+.custom-shape-divider-bottom-1737443007 svg {
+    position: relative;
+    display: block;
+    width: calc(300% + 1.3px);
+    height: 369px;
+    transform: rotateY(180deg);
+}
+
+.custom-shape-divider-bottom-1737443007 .shape-fill {
+    fill: #5052FF;
+}
+</style>
