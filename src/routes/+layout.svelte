@@ -1,101 +1,121 @@
 <script>
   import { onMount } from "svelte";
-  import { auth } from "$lib/firebase"; // นำเข้า Firebase Auth ที่ตั้งค่าไว้
-  import { onAuthStateChanged, signOut } from "firebase/auth";
-  import { goto } from "$app/navigation";
-  import { getCookie } from "cookies-next";
-  import { clearLoginCookies } from "../auth";
+  import { auth, db } from "$lib/firebase"; // นำเข้า Firebase Auth ที่ตั้งค่าไว้
+  import { onAuthStateChanged } from "firebase/auth";
+  import { doc, getDoc } from "firebase/firestore";
+  import { checkAuthStatus, logout} from "$lib/auth";
+  import { SvelteToast } from '@zerodevx/svelte-toast'
+  import { dangerToast } from "$lib/customtoast";
+
   let isLoggedIn = false;
   let currentUser = null;
   let isMenuOpen = false;
+  let userName = "";
+  let menuItems = [];
+  let role = null ;
+  const vapidKey = 'BOpqwMjROZUjSv0jI_XQad5CTMN1rjDoyEVLNwdTiW3VNK-Dp8sD1hmwj8E4MvF4fisnNoKwoG1Tb-PewzwpKg4';
+
+
+  const getMenuItems = (role) => {
+        // Full menu for admin and subject_teacher
+        if (role === 'admin') {
+            return [
+                { id: '/', label: 'หน้าแรก' },
+                { id: '/cpe02/data', label: 'ดูข้อมูล' },
+                { id: '/Dashboard', label: 'แดชบอร์ด' },
+            ];
+        } else if(role === 'subject_teacher' || role === 'teacher'){
+          return [
+                { id: '/', label: 'หน้าแรก' },
+                { id: '/cpe02/data', label: 'ดูข้อมูล' },
+                { id: '/TS_Dashboard', label: 'แดชบอร์ด' },
+            ];
+        }else{
+          return [
+                { id: '/', label: 'หน้าแรก' },
+                { id: '/cpe02/data', label: 'ดูข้อมูล' },
+                { id: '/cpe02', label: 'กรอกแบบฟอร์ม' },
+            ];
+        }
+    };
+
 
   function toggle() {
     isMenuOpen = !isMenuOpen;
   }
 
-  function checkAuthStatus() {
-    const email = getCookie("email");
-    const role = getCookie("role");
-
-    //console.log("Checking cookies:", { email, role });
-
-    if (!email || !role) {
-      console.warn("Missing cookies. Logging out.");
-      logout();
-      return false;
-    }
-    return true;
-  }
-
+  //get name from firestore where uid
   onMount(() => {
+    menuItems = getMenuItems();
     onAuthStateChanged(auth, (user) => {
+      
       if (user) {
         if (checkAuthStatus()) {
           isLoggedIn = true;
           currentUser = user;
+
+          // ดึงข้อมูลชื่อจาก Firestore
+          const userDocRef = doc(db, "users", user.uid);
+          getDoc(userDocRef).then((docSnap) => {
+            if (docSnap.exists()) {
+              userName = docSnap.data().name;
+              role = docSnap.data().role;
+              //console.log(role)
+              menuItems = getMenuItems(role);
+            } else {
+              //console.log("No such document!");
+              dangerToast("ไม่พบข้อมูล")
+            }
+          }).catch((error) => {
+            console.error("Error getting document:", error);
+            dangerToast("ไม่พบข้อมูล " + error)
+          });
+
+
         }
-        //console.log("state change")
       } else {
         isLoggedIn = false;
         currentUser = null;
       }
     });
 
-    // ตั้งเวลาตรวจสอบ cookie ทุก 1 นาที
-    const intervalId = setInterval(() => {
-      if (isLoggedIn) {
-        checkAuthStatus();
-      }
-    }, 60000);
 
-    // Cleanup interval เมื่อ component ถูกทำลาย
-    return () => clearInterval(intervalId);
   });
 
-  // ฟังก์ชัน Logout
-  async function logout() {
-    try {
-      await signOut(auth);
-      isLoggedIn = false;
-      // ลบ cookies
-      clearLoginCookies();
-      goto("/login");
-    } catch (error) {
-      console.error("Error logging out:", error);
-    }
-  }
 </script>
+
+<SvelteToast />
 
 <nav
   class="p-2 px-4 w-full shadow-lg flex items-center justify-between"
   style="background-color: #11235A;"
 >
-  <!-- Logo / Title -->
+  <!-- All menu -->
   <div class="flex items-center">
     <a href="/">
       <img src="/LOGO.png" width="40px" height="40px" alt="" />
     </a>
-    <a href="/" class="text-white pe-2 ps-5 hover:text-gray-20 me-4">ระบบสนับสนุนการเสนอหัวข้อโครงงาน</a>
-    <a href="/cpe02/form" class="text-white pe-2 hover:text-gray-200 "
-      >กรอกแบบฟรอม</a
-    >
-    <a href="/cpe02/data" class="text-white pe-2 hover:text-gray-200"
-      >ดูข้อมูล</a
-    >
+    {#each menuItems as item}
+      <a href={item.id} class="text-white pe-2 hover:text-gray-200">{item.label}</a>
+    {/each}
   </div>
 
-  <!-- Navigation Items -->
+  
+  <!-- Desktop menu -->
   {#if isLoggedIn}
-    <div class="flex items-center space-x-4 hidden md:block">
-      <span class="text-sm text-white">สวัสดี, {currentUser?.email}</span>
-      <button
-        on:click={logout}
-        class="px-4 py-2 text-sm font-semibold text-white bg-red-500 rounded-md shadow hover:bg-red-600 transition"
-      >
-        Logout
-      </button>
-    </div>
+  <div class="relative">
+    <button on:click={toggle} class="text-black hover:text-gray-800 bg-gray-200 hover:bg-gray-400 px-4 py-2 rounded-md">
+      {userName ?? "anonymous"} <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-4 h-4 inline-block"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+    </button>
+    {#if isMenuOpen}
+      <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20">
+        <a href="/account" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">ข้อมูลส่วนตัว</a>
+        <button on:click={logout} class="block w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-100">ออกจากระบบ</button>
+      </div>
+    {/if}
+  </div>
 
+      <!-- Hamburgur icon-->
     <div class="md:hidden">
       <!-- svelte-ignore a11y_consider_explicit_label -->
       <button on:click={toggle}>
@@ -115,6 +135,7 @@
         </svg>
       </button>
     </div>
+     <!-- end Hamburgur icon-->
   {:else}
     <div class="flex space-x-3 hidden md:block">
       <a
@@ -138,7 +159,7 @@
             d="M18.42 15.61a2.1 2.1 0 0 1 2.97 2.97l-3.39 3.42h-3v-3l3.42 -3.39z"
           /></svg
         >
-        Signin
+        เข้าสู่ระบบ
       </a>
     </div>
     <div class="md:hidden">
@@ -163,7 +184,7 @@
   {/if}
 </nav>
 
-<!-- Hidden Menu -->
+<!--molide menu-->
 <div
   class={`space-y-2  p-4  md:hidden transition-all   ${
     isMenuOpen ? "block" : "hidden"
@@ -176,12 +197,6 @@
 
   {#if isLoggedIn}
     <a
-      href="/cpe02/form"
-      class="block text-white hover:text-gray-200 hover:underline mb-5"
-    >
-      กรอกแบบฟรอม
-    </a>
-    <a
       href="/cpe02/data"
       class="block text-white hover:text-gray-200 hover:underline mb-5"
     >
@@ -189,7 +204,7 @@
     </a>
     <hr />
 
-    <span class="text-sm text-white">สวัสดี, {currentUser?.email}</span><br />
+    <span class="text-sm text-white">สวัสดี, {userName || currentUser?.email}</span><br />
     <button
       on:click={logout}
       class="px-4 py-2 text-sm font-semibold text-white bg-red-500 rounded-md shadow hover:bg-red-600 transition"

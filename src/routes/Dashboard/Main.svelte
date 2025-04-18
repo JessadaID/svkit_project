@@ -4,16 +4,16 @@
   import { db } from "$lib/firebase";
   let totalMembers = 0;
   let totalProjects = 0;
-  let loading = true;
+  let loading = false;
 
   onMount(async () => {
     loadProjectData();
-    loading = false;
   });
 
 
   async function loadProjectData() {
     try {
+      loading = true;
       // Get total members count from 'users' collection
       const usersCollection = collection(db, "users");
       const usersSnapshot = await getDocs(usersCollection);
@@ -25,6 +25,8 @@
       totalProjects = projectsSnapshot.size;
     } catch (error) {
       console.error("Error fetching data: ", error);
+    }finally{
+      loading = false;
     }
   }
 </script>
@@ -36,7 +38,7 @@
     <div
       class="bg-white p-6 rounded-lg shadow-lg flex flex-col justify-between"
     >
-      <h3 class="text-xl font-semibold text-gray-800 mb-4">Total Members</h3>
+      <h3 class="text-xl font-semibold text-gray-800 mb-4">จำนวนสมาชิกทั้งหมด</h3> 
       <div class="flex items-center justify-between">
         {#if loading}
           <span class="text-4xl font-bold text-blue-600">...</span>
@@ -44,7 +46,7 @@
         {:else}
           <span class="text-4xl font-bold text-blue-600">{totalMembers}</span>
         {/if}
-        <span class="text-sm text-gray-500">members</span>
+        <span class="text-sm text-gray-500">สมาชิก</span> 
       </div>
     </div>
 
@@ -52,7 +54,7 @@
     <div
       class="bg-white p-6 rounded-lg shadow-lg flex flex-col justify-between"
     >
-      <h3 class="text-xl font-semibold text-gray-800 mb-4">Total Projects</h3>
+      <h3 class="text-xl font-semibold text-gray-800 mb-4">จำนวนโครงงานทั้งหมด</h3>
       <div class="flex items-center justify-between">
         {#if loading}
           <span class="text-4xl font-bold text-green-600">...</span>
@@ -60,9 +62,8 @@
         {:else}
           <span class="text-4xl font-bold text-green-600">{totalProjects}</span>
         {/if}
-        <span class="text-sm text-gray-500">projects</span>
+        <span class="text-sm text-gray-500">โครงงาน</span> 
       </div>
     </div>
   </div>
 </div>
-

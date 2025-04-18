@@ -5,7 +5,6 @@
     updateDoc,
     getDocs,
     doc,
-    orderBy,
     query,
      where,
     addDoc
@@ -67,10 +66,24 @@
       isLoading = false;
     }
   }
+
   async function saveProject() {
   isLoading = true;  // ตั้งค่าสถานะเป็นกำลังโหลด
 
-  try {
+  if(term === "") {
+    alert("กรุณาเลือก Term");
+    isLoading = false;
+    return;
+  }else if (!title || !description || !dueDate) {
+      alert("กรุณากรอกข้อมูลให้ครบ");
+      isLoading = false;
+      return;
+  }else if (dueDate < new Date().toISOString().split("T")[0]) {
+      alert("กรุณาเลือกวันที่ใหม่กว่าวันปัจจุบัน");
+      isLoading = false;
+      return;
+  }else{
+    try {
     if (selectedProject) {
       // หากเลือกโปรเจกต์แล้วให้ทำการอัปเดต
       const projectRef = doc(db, 'Task', selectedProject.id);
@@ -101,11 +114,11 @@
     resetForm();
     isLoading = false;  // ตั้งค่าสถานะโหลดเป็น false
   }
+  }
 }
   // Load initial data (optional, if you want to load data on page load)
   onMount(() => {
     // Optionally, fetch projects for a default term
-    term = "2/2567";
     fetchProjects();
   });
 
@@ -125,31 +138,41 @@
     dueDate = "";
     isEditing = false; // รีเซ็ตเป็นโหมดเพิ่มงาน
   }
+
+    let terms = [];
+
+    async function fetchTerms() {
+        const termsRef = collection(db, "forms");
+        try {
+            const querySnapshot = await getDocs(termsRef);
+            terms = querySnapshot.docs.map(doc => doc.data().term);
+        } catch (error) {
+            console.error("Error fetching terms: ", error);
+            alert("เกิดข้อผิดพลาดในการดึงข้อมูลเทอม");
+        }
+    }
+
+    onMount(() => {
+        fetchTerms();
+    });
 </script>
 
-<div class="m-5">
-  <a href="/" class="hover:underline">หน้าแรก</a> >
-  <a href="/cpe02" class="hover:underline">แบบเสนอโครงงาน</a> >
-  <a href="/cpe02/data" class="hover:underline">ข้อมูลแบบเสนอโครงงาน</a> >
-  <b>เพิ่มหัวข้องาน</b>
-</div><div class="p-5 bg-gray-50 rounded-lg shadow-lg">
-  <!-- ส่วนเลือก Term -->
-  <div class="mb-6">
+<div class="mb-6">
     <label for="term-select" class="block text-lg font-semibold text-gray-700 mb-2">
-      เลือก Term:
+        เลือก Term:
     </label>
     <select
-      id="term-select"
-      bind:value={term}
-      on:change={fetchProjects}
-      class="w-full p-2 border rounded focus:outline-none focus:ring focus:ring-sky-300"
+        id="term-select"
+        bind:value={term}
+        on:change={fetchProjects}
+        class="w-full p-2 border rounded focus:outline-none focus:ring focus:ring-sky-300"
     >
-      <option value="" disabled selected>เลือก Term</option>
-      <option value="2/2567">2/2567</option>
-      <option value="1/2568">1/2568</option>
-      <option value="2/2568">2/2568</option>
+        <option value="" disabled selected>เลือก Term</option>
+        {#each terms as termOption}
+            <option value={termOption}>{termOption}</option>
+        {/each}
     </select>
-  </div>
+</div>
 
   <!-- ส่วนหลัก -->
   <div class="flex flex-col lg:flex-row gap-6">
@@ -232,4 +255,3 @@
       </form>
     </div>
   </div>
-</div>

@@ -108,7 +108,7 @@
                       readonly={!can_edit}
                       bind:value={comment[index]}
                     ></textarea>
-                    {#if role === "advisor"}
+                    {#if role === "teacher" || role === "subject_teacher" || role === "admin"}
                       <input
                         type="radio"
                         id="improvement-{index}"

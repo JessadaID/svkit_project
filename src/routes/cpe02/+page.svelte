@@ -1,21 +1,18 @@
 <script>
-  import { onMount } from "svelte";
+  export let data;
+
   import { goto } from "$app/navigation";
-  import { checkLoginStatus } from "../../auth";
-
-  let isLoggedIn = false;
-
-  onMount(async () => {
-    // ตรวจสอบสถานะล็อกอินเมื่อหน้าโหลด
-    isLoggedIn = await checkLoginStatus(); // ฟังก์ชันที่ตรวจสอบสถานะจาก Firebase
-  });
+  import {checkAuthStatus } from "$lib/auth";
+  import { warningToast } from "$lib/customtoast.js";
+  
+  $: latestTerm = data.latestTerm;
 
   function handleNavigation(url) {
-    // ตรวจสอบสถานะล็อกอินแล้วนำทางไปยัง URL
-    if (isLoggedIn) {
-      goto(url);
-    } else {
-      goto("/login"); // ถ้าไม่ได้ล็อกอินให้ไปที่หน้า Login
+    if(checkAuthStatus()){
+        goto(url);
+    }else{
+      warningToast('กรุณา Login ก่อนใช้งาน');
+      goto(`/login?redirect=${encodeURIComponent(url)}`);
     }
   }
 </script>
@@ -30,19 +27,33 @@
       <!-- Column 1 (50%) -->
       <div class="lg:col-span-5 col-span-1 animated-left">
         <div class="block shadow-lg w-full transition-transform duration-200">
-          <div class="flex flex-col justify-center items-center h-96 bg-white" style="background-color: #FCFAEE;">
+          <div
+            class="flex flex-col justify-center items-center h-96 bg-white"
+            style="background-color: #FCFAEE;"
+          >
             <div>
               <p class="text-xl">📜 กรอกแบบฟอร์ม</p>
-              <br>
+              <br />
               <p class="text-sm">
                 เริ่มต้นการกรอกข้อมูลเพื่อเสนอหัวข้อโครงงานได้ที่นี่
               </p>
-              <button
-                on:click={() => handleNavigation("/cpe02/form")}
-                class="mt-3 bg-blue-500 text-black px-7 py-1 border-none hover:bg-blue-600"
-              >
-                เริ่มต้น
-              </button>
+
+              {#if latestTerm}
+                <button
+                  on:click={() =>
+                    handleNavigation(`/cpe02/form/${latestTerm.term}`)}
+                  class="mt-3 bg-blue-500 text-black px-7 py-1 border-none hover:bg-blue-600"
+                >
+                  กรอกแบบฟอร์ม เทอม : {latestTerm.term}
+                </button>
+              {:else}
+                <button
+                  class="mt-3 bg-gray-500 text-black px-7 py-1 border-none"
+                  disabled
+                >
+                  <p>ยังไม่มีแบบฟอร์มที่เปิดอยู่</p>
+                </button>
+              {/if}
             </div>
           </div>
         </div>
@@ -72,18 +83,22 @@
       <!-- Column 2 (70%) -->
       <div class="lg:col-span-5 col-span-1 animated-right">
         <div class="block shadow-lg w-full transition-transform duration-200">
-          <div class="flex flex-col justify-center items-center h-96 bg-white" style="background-color: #FCFAEE;">
+          <div
+            class="flex flex-col justify-center items-center h-96 bg-white"
+            style="background-color: #FCFAEE;"
+          >
             <div>
               <p class="text-xl">📊ข้อมูลแบบเสนอโครงงาน</p>
-              <br>
+              <br />
               <p class="text-sm">ดูข้อมูลที่ได้ทำการเสนอไว้ทั้งหมด</p>
               <p class="text-sm">พร้อมการอัพเดทสถานะ</p>
-              <button
-                on:click={() => handleNavigation("/cpe02/data")}
+              <br />
+              <a
+                href="/cpe02/data"
                 class="mt-3 bg-green-500 text-black px-7 py-1 border-none hover:bg-green-600"
               >
                 ดูข้อมูล
-              </button>
+              </a>
             </div>
           </div>
         </div>
@@ -126,7 +141,7 @@
   }
 
   .custom-shape-divider-bottom-1737392204 .shape-fill {
-    fill: #5052FF;
+    fill: #5052ff;
   }
 
   .animated-left {

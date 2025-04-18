@@ -1,84 +1,140 @@
 <script>
   import { db, auth } from "$lib/firebase";
-  import { signInWithEmailAndPassword, signOut } from "firebase/auth";
+  import { signInWithEmailAndPassword} from "firebase/auth";
   import { doc, getDoc } from "firebase/firestore";
   import { goto } from "$app/navigation";
-  import { setLoginCookies, clearLoginCookies } from "../../auth";
+  import { setLoginCookies, clearLoginCookies} from "$lib/auth";
+  import { dangerToast } from "$lib/customtoast";
+  import { onMount } from "svelte";
 
   let email = "";
   let password = "";
   let user = null;
   let role = null;
   let loading = false;
+  let countdown = 3; // Initial countdown value in seconds
+  let countdownInterval; // Variable to hold the interval ID
+  
+  // เพิ่มตัวแปรสำหรับ validation
+  let emailError = "";
+  let passwordError = "";
+
+  // ฟังก์ชันตรวจสอบ email
+  function validateEmail() {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email) {
+      emailError = "กรุณากรอกอีเมล";
+      return false;
+    } else if (!emailRegex.test(email)) {
+      emailError = "กรุณากรอกอีเมลให้ถูกต้อง";
+      return false;
+    }
+    emailError = "";
+    return true;
+  }
+
+  // ฟังก์ชันตรวจสอบ password
+  function validatePassword() {
+    if (!password) {
+      passwordError = "กรุณากรอกรหัสผ่าน";
+      return false;
+    } else if (password.length < 6) {
+      passwordError = "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร";
+      return false;
+    }
+    passwordError = "";
+    return true;
+  }
 
   async function login() {
+    // ตรวจสอบความถูกต้องของข้อมูลก่อนส่ง
+    if (!validateEmail() || !validatePassword()) {
+      return;
+    }
+    
     try {
       loading = true;
       setLoginCookies(email, "user");
-      //console.log("set cookie..")
 
       const userCredential = await signInWithEmailAndPassword(
         auth,
         email,
         password
       );
-      user = userCredential.user; // เพิ่มการอัพเดท user state
+      user = userCredential.user; // Update user state
 
       const userDocRef = doc(db, "users", user.uid);
       const userDocSnap = await getDoc(userDocRef);
 
       if (userDocSnap.exists()) {
         const userData = userDocSnap.data();
-        role = userData.role; // เพิ่มการอัพเดท role state
+        role = userData.role; // Update role state
         setLoginCookies(email, role);
 
-        if (role == "admin") {
-          goto("/Dashboard");
-        } else {
-          goto("/cpe02");
-        }
+        // Start the countdown
+        countdownInterval = setInterval(() => {
+          countdown--;
+          if (countdown <= 0) {
+            clearInterval(countdownInterval); // Clear the interval when countdown reaches 0
+            redirectToDashboard();
+          }
+        }, 1000);
       }
     } catch (error) {
-      console.error("Error during login:", error);
       clearLoginCookies();
-      alert(error.message);
+      // ปรับปรุงข้อความแสดงข้อผิดพลาดให้เฉพาะเจาะจงมากขึ้น
+      let errorMessage = 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ';
+      
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = 'ไม่พบบัญชีผู้ใช้นี้';
+      } else if (error.code === 'auth/wrong-password') {
+        errorMessage = 'รหัสผ่านไม่ถูกต้อง';
+      } else if (error.code === 'auth/invalid-credential') {
+        errorMessage = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'มีการพยายามเข้าสู่ระบบหลายครั้งเกินไป กรุณาลองใหม่ภายหลัง';
+      } else {
+        errorMessage += ' ' + error.message;
+      }
+      
+      dangerToast(errorMessage);
     } finally {
       loading = false;
     }
   }
 
-  async function logout() {
-    try {
-      // ทำการ Sign Out จาก Firebase Authentication
-      await signOut(auth);
-
-      // ล้างข้อมูลผู้ใช้
-      user = null;
-      role = null;
-
-      // ลบข้อมูลจาก Cookies
-      clearLoginCookies();
-
-      // แสดงข้อความแจ้งเตือนการออกจากระบบ
-      alert("ออกจากระบบสำเร็จ");
-
-      // เปลี่ยนเส้นทางไปยังหน้า Login
-      goto("/login");
-    } catch (error) {
-      // แสดงข้อผิดพลาดหากเกิดขึ้น
-      alert("เกิดข้อผิดพลาด: " + error.message);
+  function redirectToDashboard() {
+    if (role == "admin") {
+      goto("/Dashboard");
+    } else if (role == "subject_teacher" || role == "teacher") {
+      goto("/TS_Dashboard");
+    } else {
+      goto("/cpe02");
     }
   }
+
+  onMount(() => {
+    return () => {
+      // Cleanup function to clear the interval when the component is unmounted
+      if (countdownInterval) {
+        clearInterval(countdownInterval);
+      }
+    };
+  });
 </script>
+
 <div class="flex justify-center items-center min-h-screen">
   <div class="flex w-full max-w-4xl rounded-lg overflow-hidden relative" style="box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);">
     <div class="hidden md:block w-1/2 relative" >
-      <img 
-        src="/Sign_in.jpg" 
-        alt="Login Background" 
+      <img
+        src="/Sign_in.jpg"
+        alt="Login Background"
         class="w-full h-full object-cover"
       />
-      <div class="absolute bottom-0 left-0 bg-white/80 p-4">
+      <div
+        class="absolute bottom-0 left-0 bg-white/80 p-4"
+      >
+
         <p class="text-sm text-gray-500">
           ยังไม่มีบัญชีหรอ ? <a
             href="/signup"
@@ -87,7 +143,9 @@
         </p>
       </div>
     </div>
-    <div class="w-full md:w-1/2 flex items-center justify-center p-6 bg-white/60 backdrop-blur-md">
+    <div
+      class="w-full md:w-1/2 flex items-center justify-center p-6 bg-white/60 backdrop-blur-md"
+    >
       <div class="w-full max-w-md">
         <h1 class="text-xl font-bold mb-5 text-center">เข้าสู่ระบบ</h1>
         {#if loading}
@@ -103,9 +161,13 @@
                 id="email"
                 type="email"
                 bind:value={email}
+                on:blur={validateEmail}
                 required
-                class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300"
+                class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300 {emailError ? 'border-red-500' : ''}"
               />
+              {#if emailError}
+                <p class="text-red-500 text-xs mt-1">{emailError}</p>
+              {/if}
             </div>
             <div>
               <label
@@ -116,9 +178,17 @@
                 id="password"
                 type="password"
                 bind:value={password}
+                on:blur={validatePassword}
                 required
-                class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300"
+                class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300 {passwordError ? 'border-red-500' : ''}"
               />
+              {#if passwordError}
+                <p class="text-red-500 text-xs mt-1">{passwordError}</p>
+              {/if}
+              <!-- เพิ่มลิงก์ลืมรหัสผ่าน -->
+              <div class="flex justify-end mt-1">
+                <a href="/forgot-password" class="text-sm text-blue-500 hover:underline">ลืมรหัสผ่าน?</a>
+              </div>
             </div>
             <button
               type="submit"
@@ -128,12 +198,10 @@
             </button>
           </form>
         {:else}
-          <button
-            on:click={logout}
-            class="w-full bg-red-500 text-white py-2 rounded-md hover:bg-red-600 transition mt-5"
-          >
-            Logout
-          </button>
+        <center>
+          <p class="text-xl">Redirect in <b>{countdown}</b></p>
+          <p class="text-l pt-2">ยินดีต้อนรับ <b>{email}</b></p>
+        </center>
         {/if}
       </div>
     </div>
