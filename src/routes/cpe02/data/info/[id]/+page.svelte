@@ -13,11 +13,12 @@
   } from "firebase/firestore";
   import { ref, deleteObject } from 'firebase/storage';
   import { db,storage } from "$lib/firebase.js";
-  import { checkLoginStatus } from "../../../../../auth";
+  import { checkAuthStatus } from "$lib/auth";
   import { getCookie } from "cookies-next";
-  import Loading from "../../loading.svelte";
   import Process from "./Process.svelte";
-
+  import { dangerToast, successToast, warningToast } from "$lib/customtoast";
+  import Loading from "$lib/loading.svelte";
+  
   let email = "";
   let project = null;
   let project_local = null;
@@ -38,17 +39,18 @@
     showModal = true;
   }
   onMount(async () => {
-    const isUserLoggedIn = await checkLoginStatus(); // รอผลลัพธ์จาก checkLoginStatus
+    const isUserLoggedIn = await checkAuthStatus(); // รอผลลัพธ์จาก checkLoginStatus
 
     if (isUserLoggedIn) {
       email = getCookie("email"); // หรือใช้ cookies ถ้าต้องการ
       role = getCookie("role");
-      if (role == "advisor") {
+      if (role == "teacher") {
         can_edit = true;
       }
       //console.log('User is logged in, Email:', email);
     } else {
       console.log("User not logged in. Redirecting to login...");
+      warningToast("ผู้ใช้ไม่ได้เข้าสู่ระบบ กำลังเปลี่ยนเส้นทางไปเข้าสู่ระบบ...");
       // ถ้าไม่ได้ล็อกอิน เปลี่ยนเส้นทางไปหน้า Login
       goto("/login");
     }
@@ -89,39 +91,25 @@
       visibleStates = Task.map(() => false);
     } catch (error) {
       console.error("เกิดข้อผิดพลาดในการดึงข้อมูล:", error);
+      dangerToast("เกิดข้อผิดพลาดในการดึงข้อมูล:", error);
     } finally {
       isLoading = false; // หยุดสถานะการโหลด
     }
 
-    if (typeof window !== "undefined") {
-      // เช็คว่าโค้ดทำงานในฝั่งไคลเอนต์
-      const storedData = localStorage.getItem("selectedProject");
-      if (storedData) {
-        try {
-          project_local = JSON.parse(storedData); // แปลงข้อมูลจาก string กลับเป็น object
-
-          // ตรวจสอบว่า project.id ตรงกับ data.id หรือไม่
-          if (project_local.id !== data.id) {
-            isNotFound = true; // ถ้าไม่ตรงตั้งค่าสถานะเป็น 404
-          }
-        } catch (error) {
-          console.error("Error parsing stored data:", error);
-        }
-      } else {
-        console.log("No data found in localStorage.");
-      }
-    }
   });
 
   function goToEditPage() {
     // ส่งข้อมูลไปยังหน้า edit (สามารถใช้ store หรือ localStorage ได้)
-    goto(`/cpe02/data/edit/${data.id}`); // นำทางไปหน้า /edit
     //console.log(project.id)
+    if(checkAuthStatus()){
+      goto(`/cpe02/data/edit/${data.id}`); // นำทางไปหน้า /edit
+    }
   }
 
   
 async function deleteProject(id) {
-  if (confirm("คุณต้องการลบข้อมูลนี้หรือไม่?")) {
+  if(checkAuthStatus()){
+    if (confirm("คุณต้องการลบข้อมูลนี้หรือไม่?")) {
     let isLoading = true;
 
     try {
@@ -146,8 +134,10 @@ async function deleteProject(id) {
               try {
                 await deleteObject(imageRef);
                 console.log(`ลบรูปภาพสำเร็จ: ${image.name}`);
+                successToast(`ลบรูปภาพสำเร็จ: ${image.name}`);
               } catch (error) {
                 console.error(`ไม่สามารถลบรูปภาพ ${image.name}:`, error);
+                dangerToast(`ไม่สามารถลบรูปภาพ ${image.name}:`, error);
               }
             }
           });
@@ -159,15 +149,16 @@ async function deleteProject(id) {
         // 3. ลบเอกสารใน Firestore
         await deleteDoc(docRef);
         
-        alert("ลบข้อมูลและรูปภาพเรียบร้อยแล้ว!");
+        successToast("ลบข้อมูลและรูปภาพเรียบร้อยแล้ว!");
         goto(`/cpe02/data`);
       }
     } catch (error) {
       console.error("เกิดข้อผิดพลาดในการลบ:", error);
-      alert("ไม่สามารถลบข้อมูลได้");
+      dangerToast("เกิดข้อผิดพลาดในการลบ:", error);
     } finally {
       isLoading = false;
     }
+  }
   }
 }
 

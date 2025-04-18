@@ -5,7 +5,7 @@
   import { onMount } from "svelte";
   import { doc, setDoc ,getDoc} from "firebase/firestore"; // ใช้ setDoc หรือ updateDoc
   import { db, storage } from "$lib/firebase.js";
-  import { checkLoginStatus } from "../../../../../auth";
+  import { checkAuthStatus } from "$lib/auth";
   import { getCookie } from "cookies-next";
   import { goto } from "$app/navigation";
   import {
@@ -14,7 +14,8 @@
     uploadBytes,
     getDownloadURL,
   } from "firebase/storage";
-  import Loading from "../../loading.svelte";
+  import Loading from "$lib/loading.svelte";
+  import { warningToast ,successToast, dangerToast} from "$lib/customtoast";
 
   // @ts-ignore
   let project = null;
@@ -33,14 +34,14 @@
   onMount(async () => {
   try {
     // ตรวจสอบสถานะการล็อกอิน
-    const isUserLoggedIn = await checkLoginStatus();
+    const isUserLoggedIn = await checkAuthStatus();
 
     if (isUserLoggedIn) {
       // ดึงข้อมูล email และ role จาก cookies
       email = getCookie("email");
       role = getCookie("role");
     } else {
-      console.log("User not logged in. Redirecting to login...");
+      warningToast("ผู้ใช้ไม่ได้เข้าสู่ระบบ กำลังเปลี่ยนเส้นทางไปเข้าสู่ระบบ...");
       goto("/login");
       return;
     }
@@ -118,10 +119,11 @@
       };
 
       await setDoc(docRef, updatedProject);
-      alert("แก้ไขข้อมูลเรียบร้อยแล้ว!");
+      successToast("แก้ไขข้อมูลเรียบร้อยแล้ว!");
+      goto("../")
     } catch (error) {
       console.error("Error updating document: ", error);
-      alert("เกิดข้อผิดพลาดในการอัปเดตข้อมูล");
+      dangerToast("เกิดข้อผิดพลาดในการอัปเดตข้อมูล " + error);
     } finally {
       isLoading = false;
     }
@@ -170,10 +172,10 @@
       const docRef = doc(db, "project-approve", data.id);
       await setDoc(docRef, project);
 
-      alert("ลบรูปภาพเรียบร้อยแล้ว");
+      successToast("ลบรูปภาพเรียบร้อยแล้ว");
     } catch (error) {
       console.error("Error deleting image:", error);
-      alert("เกิดข้อผิดพลาดในการลบรูปภาพ");
+      dangerToast("เกิดข้อผิดพลาดในการลบรูปภาพ " +error);
     }
   }
 
@@ -240,7 +242,7 @@
       return true;
     } catch (error) {
       console.error("Error uploading images:", error);
-      alert("เกิดข้อผิดพลาดในการอัพโหลดรูปภาพ");
+      dangerToast('เกิดข้อผิดพลาดในการอัพโหลดรูปภาพ' + error)
       return false;
     } finally {
       isUploading = false;
@@ -271,17 +273,14 @@
           <!--===============================================-->
 
           <label for="name" class="block text-lg font-medium">ภาคเรียน <b class="text-red-500">*</b></label>
-          <select
+          <input
             id="dropdown"
             name="term"
             class="p-2 w-4/12"
             required
+            disabled
             bind:value={project.term}
-          >
-            <option value="2/2567" selected>2/2567</option>
-            <option value="1/2568">1/2568</option>
-            <option value="2/2568">2/2568</option>
-          </select>
+          />
 
           <!--===============================================-->
 

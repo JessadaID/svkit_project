@@ -22,17 +22,14 @@
   <label for="name" class="block text-lg font-medium"
     >ภาคเรียน <b class="text-red-500">*</b></label
   >
-  <select
-    id="dropdown"
+  <input
+    type="text"
     name="term"
     class="p-2 w-4/12"
     bind:value={term}
     required
-  >
-    <option value="2/2567" selected>2/2567</option>
-    <option value="1/2568">1/2568</option>
-    <option value="2/2568">2/2568</option>
-  </select>
+    disabled
+  />
 
   <!--===============================================-->
 

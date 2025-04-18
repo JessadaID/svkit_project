@@ -5,14 +5,15 @@
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import { getCookie } from "cookies-next/client";
-  import { checkLoginStatus } from "../../../auth";
+  import { checkAuthStatus } from "$lib/auth";
   import "./style.css";
   import Topic1_3 from "./topic1_3.svelte";
   import Topic4_5 from "./topic4_5.svelte";
   import Topic6_7 from "./topic6_7.svelte";
   import Topic8_9 from "./topic8_9.svelte";
+  export let data; // รับค่าจาก `+page.js`
 
-  let term = ""; //เทอม
+  let term = data.termId; // กำหนดค่า term จาก URL
   let project_name_th = ""; //ชื่อโปรเจค ไทย
   let project_name_en = ""; //ชื่อโปรเจค eng
   let adviser = [""]; // ที่ปรึกษา
@@ -77,7 +78,7 @@
         }
         break;
       case 1:
-        if (!project_problem || !project_Objective ) {
+        if (!project_problem || !project_Objective) {
           alert("กรุณากรอกข้อมูลปัญหาและวัตถุประสงค์");
           return false;
         }
@@ -93,7 +94,7 @@
   }
 
   onMount(async () => {
-    const isUserLoggedIn = await checkLoginStatus(); // รอผลลัพธ์จาก checkLoginStatus
+    const isUserLoggedIn = await checkAuthStatus(); // รอผลลัพธ์จาก checkLoginStatus
 
     if (isUserLoggedIn) {
       email = getCookie("email"); // หรือใช้ cookies ถ้าต้องการ
@@ -128,7 +129,8 @@
 
   async function handleSubmit(event) {
     event.preventDefault();
-    isLoading = true;
+    if(checkAuthStatus()){
+      isLoading = true;
 
     try {
       // อัพโหลดรูปภาพก่อน
@@ -178,12 +180,13 @@
       tableTitle = "";
       monthLabels = [];
       activities = [];
-      goto("../cpe02");
+      goto("../../cpe02");
     } catch (error) {
       console.error("Error adding document: ", error);
       alert("เกิดข้อผิดพลาด: " + error.message);
     } finally {
       isLoading = false;
+    }
     }
   }
 
@@ -258,14 +261,12 @@
         {/each}
       </ol>
     </nav>
-    
+
     <nav aria-label="Progress" class="hidden md:block">
       <ol role="list" class="space-y-4 md:flex md:space-y-0 md:space-x-8">
         {#each steps as step, index}
           <li class="md:flex-1">
-            <div
-              class="group flex flex-col py-2 pl-4 md:pb-0 md:pl-0 md:pt-4"
-            >
+            <div class="group flex flex-col py-2 pl-4 md:pb-0 md:pl-0 md:pt-4">
               <span
                 class={`text-sm font-medium ${currentStep >= index ? "text-blue-600" : "text-gray-500"}`}
               >
@@ -326,7 +327,7 @@
       <button
         type="button"
         class={`px-4 py-2 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 
-                  ${currentStep === 0 ? "invisible" : "visible bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500"}`}
+                    ${currentStep === 0 ? "invisible" : "visible bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500"}`}
         on:click={() => navigateStep("prev")}
         disabled={currentStep === 0}
       >
@@ -336,8 +337,8 @@
       <button
         type={currentStep === steps.length - 1 ? "submit" : "button"}
         class="px-4 py-2 rounded-md text-sm font-medium text-white
-                  bg-blue-600 hover:bg-blue-700
-                  focus:outline-none focus:ring-2 focus:ring-offset-2"
+                    bg-blue-600 hover:bg-blue-700
+                    focus:outline-none focus:ring-2 focus:ring-offset-2"
         on:click={() => currentStep < steps.length - 1 && navigateStep("next")}
         disabled={isLoading}
       >
@@ -351,32 +352,37 @@
   </form>
 </div>
 <div class="custom-shape-divider-bottom-1737391877">
-  <svg data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
-      <path d="M1200 120L0 16.48 0 0 1200 0 1200 120z" class="shape-fill"></path>
+  <svg
+    data-name="Layer 1"
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 1200 120"
+    preserveAspectRatio="none"
+  >
+    <path d="M1200 120L0 16.48 0 0 1200 0 1200 120z" class="shape-fill"></path>
   </svg>
 </div>
 
 <style>
-.custom-shape-divider-bottom-1737391877 {
-  position: fixed; /* เปลี่ยนจาก absolute เป็น fixed */
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  overflow: hidden;
-  line-height: 0;
-  transform: rotate(180deg);
-  z-index: -1; /* เพิ่ม z-index เพื่อให้อยู่ด้านหลังเนื้อหา */
-}
+  .custom-shape-divider-bottom-1737391877 {
+    position: fixed; /* เปลี่ยนจาก absolute เป็น fixed */
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    overflow: hidden;
+    line-height: 0;
+    transform: rotate(180deg);
+    z-index: -1; /* เพิ่ม z-index เพื่อให้อยู่ด้านหลังเนื้อหา */
+  }
 
-.custom-shape-divider-bottom-1737391877 svg {
-  position: relative;
-  display: block;
-  width: calc(300% + 1.3px);
-  height: 369px;
-  transform: rotateY(180deg);
-}
+  .custom-shape-divider-bottom-1737391877 svg {
+    position: relative;
+    display: block;
+    width: calc(300% + 1.3px);
+    height: 369px;
+    transform: rotateY(180deg);
+  }
 
-.custom-shape-divider-bottom-1737391877 .shape-fill {
-  fill: #FF8585;
-}
+  .custom-shape-divider-bottom-1737391877 .shape-fill {
+    fill: #ff8585;
+  }
 </style>

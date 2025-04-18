@@ -3,8 +3,14 @@
   import { createUserWithEmailAndPassword } from "firebase/auth";
   import { doc, setDoc } from "firebase/firestore";
   import { goto } from "$app/navigation";
-  import { setLoginCookies, clearLoginCookies } from "../../auth";
+  import { setLoginCookies, clearLoginCookies } from "$lib/auth";
+  import { dangerToast, successToast, warningToast } from "$lib/customtoast";
 
+
+  let prefix = 'นาย';
+  let name = '';
+  const prefixes = ['นาย', 'นาง', 'นางสาว'];
+  
   let email = "";
   let password = "";
   let confirmPassword = "";
@@ -16,11 +22,16 @@
       isLoading = true;
 
       // ตรวจสอบว่ารหัสผ่านและยืนยันรหัสผ่านตรงกันหรือไม่
-      if (password !== confirmPassword) {
-        alert("รหัสผ่านไม่ตรงกัน");
+      if(email == "" || name == "" || password == "" || confirmPassword == ""){
+        warningToast("กรอกข้อมูลให้ครบถ้วน");
         return;
       }
 
+      if (password !== confirmPassword) {
+        warningToast("รหัสผ่านไม่ตรงกัน");
+        return;
+      }
+      
       // สร้างผู้ใช้ใน Firebase Authentication
       setLoginCookies(email, "user");
 
@@ -35,16 +46,18 @@
       const userDocRef = doc(db, "users", user.uid);
       await setDoc(userDocRef, {
         email: user.email,
-        role: role, // บันทึก Role ของผู้ใช้
+        role: role, // บันทึก Role ของผู้ใชh
+        name:prefix+name,
       });
 
       // เก็บข้อมูลใน Cookies
       setLoginCookies(email, role);
 
       // แจ้งเตือนผู้ใช้
-      alert(`สมัครสมาชิกสำเร็จ! ยินดีต้อนรับ ${user.email}`);
+      successToast(`สมัครสมาชิกสำเร็จ! ยินดีต้อนรับ ${user.email}`);
 
       // รีเซ็ตฟอร์ม
+      name = "";
       email = "";
       password = "";
       confirmPassword = "";
@@ -53,7 +66,7 @@
       goto("/cpe02");
     } catch (error) {
       clearLoginCookies();
-      alert("เกิดข้อผิดพลาดในการสมัครสมาชิก: " + error.message);
+      dangerToast("เกิดข้อผิดพลาดในการสมัครสมาชิก: " + error.message);
     } finally {
       isLoading = false; // เสร็จสิ้นการโหลด
     }
@@ -69,6 +82,29 @@
  
         <form on:submit|preventDefault={signup} class="space-y-4">
           <div>
+            <label for="name" class="block text-sm font-medium text-gray-700">
+              ชื่อ
+            </label>
+            <div class="flex items-center space-x-2">
+            
+              <select
+                bind:value={prefix}
+                class="px-3 py-2 border rounded-md bg-white focus:outline-none shadow-sm focus:ring focus:ring-blue-300"
+              >
+                {#each prefixes as p}
+                  <option value={p}>{p}</option>
+                {/each}
+              </select>
+              <input
+                type="text"
+                bind:value={name}
+                placeholder="เช่น เอ บี"
+                class="px-3 w-full py-2 border rounded-md focus:outline-none shadow-sm focus:ring focus:ring-blue-300"
+              />
+            </div>
+          </div>
+          
+          <div>
             <label for="email" class="block text-sm font-medium text-gray-700">
               อีเมล
             </label>
@@ -80,6 +116,7 @@
               class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-300"
               placeholder="กรอกอีเมลของคุณ"
             />
+            
           </div>
  
           <div>
