@@ -15,7 +15,7 @@ export function warningToast(message){
         theme: {
           "--toastBackground": "#f1c40f",
           "--toastBarBackground": "#d4ac0d",
-        },
+        },pausable: true 
       });
 }
 

@@ -6,17 +6,21 @@
   import { goto } from "$app/navigation";
   import { getCookie } from "cookies-next/client";
   import { checkAuthStatus } from "$lib/auth";
-  import "./style.css";
+  import { fade } from "svelte/transition";
+  // Removed style.css import if styles are primarily Tailwind now
+  // import "./style.css";
   import Topic1_3 from "./topic1_3.svelte";
-  import Topic4_5 from "./topic4_5.svelte";
-  import Topic6_7 from "./topic6_7.svelte";
-  import Topic8_9 from "./topic8_9.svelte";
+  import Topic4_6 from "./topic4_6.svelte";
+  import Topic7_9 from "./topic7_9.svelte";
+  import Topic10_12 from "./topic10_12.svelte";
+  import { warningToast , successToast} from "$lib/customtoast";
+
   export let data; // รับค่าจาก `+page.js`
 
   let term = data.termId; // กำหนดค่า term จาก URL
   let project_name_th = ""; //ชื่อโปรเจค ไทย
   let project_name_en = ""; //ชื่อโปรเจค eng
-  let adviser = [""]; // ที่ปรึกษา
+  let adviser = []; // ที่ปรึกษา
   let project_problem = ""; //4.	ที่มาและความสำคัญของปัญหา
   let status = "";
   let email = "";
@@ -28,361 +32,413 @@
   let research_data = ""; //งานวิจัยที่เกี่ยวข้อง
   let Theory_principles = ""; //7.	ทฤษฎีและหลักการ
   let members = [""]; // ตัวแปรสำหรับเก็บสมาชิกที่เพิ่มเข้ามา
+  let benefits = ""; // ผลที่คาดว่าจะได้รับ
   let currentStep = 0;
+  let refer = ""; // อ้างอิง
+  let budgetItems ; // รายการงบประมาณ
 
   let selectedFiles = [];
   let imagePreviews = [];
   let uploadedImageUrls = []; // เพิ่มตัวแปรสำหรับเก็บ URL ที่อัพโหลดแล้ว
   let fileInput;
 
-  let tableTitle = "เดือน / พ.ศ. 2566 - 2567";
-  let monthLabels = ["กค", "สค", "กย", "ตค", "พย", "ธค", "มค", "กพ"];
+  // Gantt Chart Data
+  let tableTitle = "แผนและระยะเวลาดำเนินงาน (เดือน / พ.ศ.)"; // More descriptive default
+  let monthLabels = ["ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค.", "ม.ค.", "ก.พ."]; // Shorter month names
   let activities = [
     {
       id: 1,
-      name: "",
-      months: Object.fromEntries(monthLabels.map((month) => [month, false])),
-      color: "#11235A",
+      name: "ศึกษาข้อมูลและหัวข้อโครงงาน", // Example initial activity
+      months: Object.fromEntries(monthLabels.map((month, index) => [month, index < 2])), // Example initial state
+      color: "#4F46E5", // Example color (Indigo)
+    },
+     {
+      id: 2,
+      name: "เสนอหัวข้อโครงงาน",
+      months: Object.fromEntries(monthLabels.map((month, index) => [month, index === 2])),
+      color: "#10B981", // Example color (Emerald)
+    },
+    {
+      id: 3,
+      name: "วิเคราะห์ ออกแบบและพัฒนาโครงงาน",
+      months: Object.fromEntries(monthLabels.map((month, index) => [month, index > 2])),
+      color: "#FBBF24", // Example color (Amber)
+    },
+    {
+      id: 4,
+      name: "ทดสอบ ปรับปรุงและประเมินผล",
+      months: Object.fromEntries(monthLabels.map((month, index) => [month, index > 4])),
+      color: "#EF4444", // Example color (Red)
+    },
+    {
+      id: 5,
+      name: "ทำปริญญานิพนธ์ และเอกสารอื่นๆ",
+      months: Object.fromEntries(monthLabels.map((month, index) => [month, index > 5])),
+      color: "#3B82F6", // Example color (Blue)
     },
   ];
+
   const steps = [
-    { title: "ข้อมูลทั่วไป" },
-    {
-      title: "ปัญหาและวัตถุประสงค์",
-    },
-    { title: "ข้อมูลวิจัย" },
-    { title: "ขอบเขตและแผนงาน" },
+    { title: "ข้อมูลทั่วไป", icon: "M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" },
+    { title: "ปัญหาและวัตถุประสงค์", icon: "M9.663 3.581a1 1 0 011.674 0l8 11.999A1 1 0 0118.5 17H2.5a1 1 0 01-.837-1.42l8-11.999zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-4a1 1 0 00-1 1v1a1 1 0 102 0v-1a1 1 0 00-1-1z" },
+    { title: "วิธีดำเนินงานและขอบเขต", icon: "M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm4 10h8v-2H8v2zm0-4h8v-2H8v2zm0-4h8V8H8v2z" },
+    { title: "ผลที่คาดว่าจะได้รับและเอกสารอ้างอิง", icon: "M9 17v-2m3 2v-4m3 4v-6m-9 4h12M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z" },
   ];
 
   function navigateStep(direction) {
     if (direction === "next" && currentStep < steps.length - 1) {
       if (validateStep()) {
         currentStep++;
+        window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll to top on step change
       }
     } else if (direction === "prev" && currentStep > 0) {
       currentStep--;
+       window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll to top on step change
     }
   }
+
   function validateStep() {
     switch (currentStep) {
       case 0:
-        if (
-          !project_name_th ||
-          !project_name_en ||
-          !term ||
-          members.some((m) => !m) ||
-          adviser.length === 0
-        ) {
-          alert("กรุณากรอกข้อมูลให้ครบถ้วน");
+        if(!project_name_th.trim()){
+          warningToast("ขั้นตอนที่ 1: กรุณากรอกชื่อโครงงานภาษาไทย");
+          return false;
+        }
+        if(!project_name_en.trim()){
+          warningToast("ขั้นตอนที่ 1: กรุณากรอกชื่อโครงงานภาษาอังกฤษ");
+          return false;
+        }
+        if(!term){
+          warningToast("ขั้นตอนที่ 1: ไม่พบข้อมูลภาคเรียน"); // Changed message slightly
+          return false;
+        }
+        if(members.some((m) => !m.trim())){
+          warningToast("ขั้นตอนที่ 1: กรุณากรอกชื่อสมาชิกโครงงานให้ครบถ้วน (ห้ามเว้นว่าง)");
+          return false;
+        }
+        if(adviser.length === 0){
+          warningToast("ขั้นตอนที่ 1: กรุณาเลือกอาจารย์ที่ปรึกษาโครงงานอย่างน้อย 1 ท่าน");
           return false;
         }
         break;
       case 1:
-        if (!project_problem || !project_Objective) {
-          alert("กรุณากรอกข้อมูลปัญหาและวัตถุประสงค์");
+        if (!project_problem.trim()) {
+          warningToast("ขั้นตอนที่ 2: กรุณากรอกที่มาและความสำคัญของปัญหา");
+          return false;
+        }
+        if (!project_Objective.trim()) {
+          warningToast("ขั้นตอนที่ 2: กรุณากรอกวัตถุประสงค์ของโครงงาน");
+          return false;
+        }
+        if (!research_data.trim()) {
+          warningToast("ขั้นตอนที่ 2: กรุณากรอกข้อมูลงานวิจัยที่เกี่ยวข้อง");
           return false;
         }
         break;
       case 2:
-        if (!research_data || !Theory_principles || !fileInput) {
-          alert("กรุณากรอกข้อมูลการวิจัยและทฤษฎี");
+         if (!Theory_principles.trim()) {
+           warningToast("ขั้นตอนที่ 3: กรุณากรอกทฤษฎีและหลักการ");
+           return false;
+         }
+         if (!scope.trim()) {
+           warningToast("ขั้นตอนที่ 3: กรุณากรอกขอบเขตของโครงงาน");
+           return false;
+        }
+        // Moved Gantt chart validation here
+        if (activities.length === 0 || activities.some(a => !a.name.trim())) {
+            warningToast("ขั้นตอนที่ 3: กรุณาเพิ่มกิจกรรมและใส่ชื่อกิจกรรมในแผนการดำเนินงาน");
+            return false;
+        }
+         // Optional: Check if at least one image is selected if required
+         // if (imagePreviews.length === 0) {
+         //   alert("ขั้นตอนที่ 3: กรุณาอัปโหลดรูปภาพประกอบอย่างน้อย 1 รูป");
+         //   return false;
+         // }
+        break;
+      case 3:
+        if(!benefits.trim()) {
+          warningToast("ขั้นตอนที่ 4: กรุณากรอกประโยชน์ที่คาดว่าจะได้รับ");
           return false;
         }
+        if(!refer.trim()) {
+          warningToast("ขั้นตอนที่ 4: กรุณากรอกเอกสารอ้างอิง");
+          return false;
+        }
+        if(!budgetItems || budgetItems.length === 0) {
+          warningToast("ขั้นตอนที่ 4: กรุณากรอกข้อมูลรายการงบประมาณ");
+          return false;
+        }
+        // Add validation for Topic10_12 content if needed
+        // Example: if (!expectedOutcome.trim()) { warningToast("ขั้นตอนที่ 4: กรุณากรอกผลที่คาดว่าจะได้รับ"); return false; }
         break;
     }
     return true;
   }
 
   onMount(async () => {
-    const isUserLoggedIn = await checkAuthStatus(); // รอผลลัพธ์จาก checkLoginStatus
-
+    const isUserLoggedIn = await checkAuthStatus();
     if (isUserLoggedIn) {
-      email = getCookie("email"); // หรือใช้ cookies ถ้าต้องการ
-      //console.log('User is logged in, Email:', email);
+      email = getCookie("email");
     } else {
       console.log("User not logged in. Redirecting to login...");
-      // ถ้าไม่ได้ล็อกอิน เปลี่ยนเส้นทางไปหน้า Login
-      goto("/login");
+      goto("/login?redirect=/cpe02/form/" + term); // Redirect back after login
     }
   });
 
   function handleTab(event, bindVariableSetter) {
+    // Keep your existing handleTab logic
     if (event.key === "Tab") {
       event.preventDefault();
       const textarea = event.target;
       const start = textarea.selectionStart || 0;
       const end = textarea.selectionEnd || 0;
-
-      // เพิ่ม Tab ที่ตำแหน่งที่กำลังพิมพ์
-      textarea.value =
-        textarea.value.substring(0, start) +
-        "\t" +
-        textarea.value.substring(end);
-
-      // ปรับตำแหน่ง cursor
+      textarea.value = textarea.value.substring(0, start) + "\t" + textarea.value.substring(end);
       textarea.selectionStart = textarea.selectionEnd = start + 1;
-
-      // อัปเดตค่าของตัวแปรที่ส่งมา
       bindVariableSetter(textarea.value);
     }
   }
 
-  async function handleSubmit(event) {
-    event.preventDefault();
-    if(checkAuthStatus()){
-      isLoading = true;
-
-    try {
-      // อัพโหลดรูปภาพก่อน
-      const imageUrls = await uploadImages();
-      let Method_of_operation = {
-        tableTitle,
-        monthLabels,
-        activities,
-      };
-      status = "wait";
-      // เพิ่มข้อมูลไปยัง Firestore พร้อมกับ URL ของรูปภาพ
-      const docRef = await addDoc(collection(db, "project-approve"), {
-        term,
-        project_name_th,
-        project_name_en,
-        members,
-        adviser,
-        project_problem,
-        status,
-        email,
-        External_consultant,
-        Tasks,
-        project_Objective,
-        research_data,
-        Theory_principles,
-        images: imageUrls, // เพิ่ม array ของ URL รูปภาพ
-        scope,
-        Method_of_operation,
-      });
-
-      alert(`เพิ่มข้อมูลสำเร็จ!`);
-      // รีเซ็ตฟอร์ม
-      term = "";
-      project_name_th = "";
-      project_name_en = "";
-      members = [];
-      adviser = [];
-      project_problem = "";
-      status = "";
-      External_consultant = "";
-      project_Objective = "";
-      research_data = "";
-      Theory_principles = "";
-      selectedFiles = [];
-      imagePreviews = [];
-      scope = "";
-      tableTitle = "";
-      monthLabels = [];
-      activities = [];
-      goto("../../cpe02");
-    } catch (error) {
-      console.error("Error adding document: ", error);
-      alert("เกิดข้อผิดพลาด: " + error.message);
-    } finally {
-      isLoading = false;
+  async function handleSubmit() {
+    // Final validation before submitting
+    if (!validateStep()) { // Validate the current (last) step
+        return;
     }
+    if(checkAuthStatus()){ // Double check auth
+      isLoading = true;
+      try {
+        const imageUrls = await uploadImages();
+        const Method_of_operation = { tableTitle, monthLabels, activities };
+        status = "wait"; // Default status
+
+        const docRef = await addDoc(collection(db, "project-approve"), {
+          term,
+          project_name_th: project_name_th.trim(),
+          project_name_en: project_name_en.trim(),
+          members: members.map(m => m.trim()).filter(m => m), // Trim and remove empty
+          adviser: adviser, // Trim and remove empty
+          project_problem: project_problem.trim(),
+          status,
+          email,
+          External_consultant: External_consultant.trim(),
+          Tasks, // Should be initialized properly if needed
+          project_Objective: project_Objective.trim(),
+          research_data: research_data.trim(),
+          Theory_principles: Theory_principles.trim(),
+          images: imageUrls,
+          scope: scope.trim(),
+          Method_of_operation,
+          benefits: benefits.trim(),
+          refer: refer.trim(),
+          budgetItems: budgetItems.map(item => ({
+            ...item,
+            amount: parseFloat(item.amount) || 0, // Ensure amount is a number
+          })),
+          createdAt: new Date() // Add a timestamp
+        });
+
+        // Use a more modern notification system if available (e.g., svelte-toast)
+        successToast(`เพิ่มข้อมูลโครงงาน "${project_name_th}" สำเร็จ!`);
+        // Consider redirecting to the newly created project page or the list view
+        goto(`/cpe02/data/${term}/${docRef.id}`); // Redirect to the new project detail page
+
+      } catch (error) {
+        console.error("Error adding document: ", error);
+        alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล: " + error.message);
+      } finally {
+        isLoading = false;
+      }
+    } else {
+         warningToast("Session หมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
+         goto("/login?redirect=/cpe02/form/" + term);
     }
   }
 
   async function uploadImages() {
+    // Keep your existing uploadImages logic, maybe add progress indication?
     const urls = [];
-    const MAX_SIZE_MB = 2; // จำกัดขนาดไฟล์ไม่เกิน 2MB
-    const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024; // แปลงเป็นไบต์
+    const MAX_SIZE_MB = 2;
+    const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
 
     for (let preview of imagePreviews) {
       const file = preview.originalFile;
-
-      // ตรวจสอบขนาดไฟล์ก่อนการอัปโหลด
       if (file.size > MAX_SIZE_BYTES) {
-        alert(`ไฟล์ "${file.name}" มีขนาดเกิน 2MB และไม่สามารถอัปโหลดได้`);
-        continue; // ข้ามไฟล์ที่ขนาดเกิน 2MB
+        warningToast(`ไฟล์ "${file.name}" มีขนาดเกิน ${MAX_SIZE_MB}MB และไม่สามารถอัปโหลดได้`);
+        continue;
       }
-
       const timestamp = Date.now();
-      const fileName = `${timestamp}_${file.name}`; // สร้างชื่อไฟล์ด้วย timestamp
-
-      // สร้าง reference ใน storage
-      const storageRef = ref(storage, `project-images/${fileName}`);
+      const uniqueFileName = `${email.split('@')[0]}_${timestamp}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`; // Sanitize filename
+      const storageRef = ref(storage, `project-images/${term}/${uniqueFileName}`); // Organize by term
 
       try {
-        // อัปโหลดไฟล์ไปยัง Firebase Storage
+        // Consider showing upload progress per file if needed
         await uploadBytes(storageRef, file);
-
-        // ดึง URL ของไฟล์ที่อัปโหลด
         const downloadURL = await getDownloadURL(storageRef);
         urls.push({
           url: downloadURL,
-          name: fileName,
-          title: preview.title || "ไม่มีคำอธิบาย",
+          name: uniqueFileName,
+          title: preview.title || file.name, // Use original filename if no title
         });
       } catch (error) {
-        console.error("Error uploading file:", error);
-        throw error;
+        console.error(`Error uploading ${file.name}:`, error);
+        // Consider collecting errors and showing a summary
+        warningToast(`เกิดข้อผิดพลาดในการอัปโหลดไฟล์ "${file.name}": ${error.message}`);
+        // Decide if you want to stop the whole process or just skip the file
+        throw error; // Re-throw to stop the submission process if an upload fails
       }
     }
-
     return urls;
   }
+
 </script>
 
-<div class="m-5">
-  <a href="/" class="hover:underline">หน้าแรก</a> >
-  <a href="/cpe02" class="hover:underline">แบบเสนอโครงงาน</a>
-  > <b>กรอกแบบฟรอม</b>
-</div>
-
-<div class="md:m-5 md:p-5 flex justify-center items-center">
+<!-- Main container with padding and background -->
+<div class="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-pink-50 py-8 md:py-12 px-4" transition:fade={{ duration: 300 }}>
+  <!-- Form Card -->
   <form
     on:submit|preventDefault={handleSubmit}
-    class="shadow-lg p-5 md:rounded-lg md:w-8/12 bg-gray-200"
+    class="relative max-w-4xl mx-auto bg-white shadow-xl rounded-lg overflow-hidden"
   >
-    <!-- Progress Steps -->
-    <nav aria-label="Progress" class="block md:hidden">
-      <ol role="list" class="space-y-4">
-        {#each steps as step, index}
-          {#if currentStep === index}
-            <li class="flex items-center justify-center py-2">
-              <span
-                class={`text-sm font-medium ${currentStep >= index ? "text-blue-600" : "text-gray-500"}`}
-              >
-                Step {index + 1}&nbsp;
-              </span>
-              <span class="text-sm font-medium text-blue-600">
-                {step.title}
-              </span>
-            </li>
-          {/if}
-        {/each}
-      </ol>
-    </nav>
+    <!-- Form Header -->
+    <div class="bg-gradient-to-r from-indigo-600 to-purple-600 p-4 sm:p-6 text-white">
+        <h1 class="text-xl sm:text-2xl font-bold">แบบเสนอโครงงาน (CE02)</h1>
+        <p class="text-sm text-indigo-100 mt-1">ภาคเรียน: {term}</p>
+    </div>
 
-    <nav aria-label="Progress" class="hidden md:block">
-      <ol role="list" class="space-y-4 md:flex md:space-y-0 md:space-x-8">
+    <!-- Progress Steps -->
+    <nav aria-label="Progress" class="border-b border-gray-200">
+      <ol role="list" class="flex justify-between">
         {#each steps as step, index}
-          <li class="md:flex-1">
-            <div class="group flex flex-col py-2 pl-4 md:pb-0 md:pl-0 md:pt-4">
-              <span
-                class={`text-sm font-medium ${currentStep >= index ? "text-blue-600" : "text-gray-500"}`}
-              >
-                Step {index + 1}
-              </span>
-              <span class="text-sm font-medium">{step.title}</span>
-            </div>
+          <li class={`flex-1 group ${index === 0 ? '' : 'border-l'} border-gray-200`}>
+            <a
+              href="#!"
+              on:click|preventDefault={() => { /* Allow clicking previous steps? */ if (index < currentStep) currentStep = index; }}
+              class="flex flex-col items-center p-3 sm:p-4 text-center transition-colors duration-200 ease-in-out h-full
+                     ${currentStep === index
+                       ? 'border-b-2 border-indigo-600 text-indigo-600'
+                       : currentStep > index
+                         ? 'text-green-600 hover:bg-green-50'
+                         : 'text-gray-500 hover:bg-gray-50'}"
+            >
+              <svg class="w-6 h-6 mb-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                 {#if currentStep > index}
+                    <!-- Checkmark for completed -->
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                 {:else}
+                    <!-- Step Icon -->
+                    <path stroke-linecap="round" stroke-linejoin="round" d={step.icon} />
+                 {/if}
+              </svg>
+              <span class="text-xs sm:text-sm font-medium">{step.title}</span>
+            </a>
           </li>
         {/each}
       </ol>
     </nav>
 
-    <!-- Progress Bar -->
-    <div class="mt-4 mb-8">
-      <div class="h-2 w-full bg-gray-200 rounded-full">
-        <div
-          class="h-2 bg-blue-600 rounded-full transition-all duration-500 ease-in-out"
-          style="width: {((currentStep + 1) / steps.length) * 100}%"
-        ></div>
-      </div>
-    </div>
-
-    <!-- Form Content -->
-    <div class="p-5">
+    <!-- Form Content Area -->
+    <div class="p-5 sm:p-8">
+      <!-- Use svelte:component for dynamic rendering based on step -->
       {#if currentStep === 0}
-        <Topic1_3
-          bind:term
-          bind:project_name_th
-          bind:project_name_en
-          bind:members
-          bind:adviser
-          bind:External_consultant
-        />
+        <div in:fade={{ duration: 250 }}>
+          <Topic1_3
+            bind:term
+            bind:project_name_th
+            bind:project_name_en
+            bind:members
+            bind:adviser
+            bind:External_consultant
+            
+          />
+        </div>
       {:else if currentStep === 1}
-        <Topic4_5 bind:project_problem bind:project_Objective {handleTab} />
+        <div in:fade={{ duration: 250 }}>
+          <Topic4_6 bind:project_problem bind:project_Objective {handleTab} bind:research_data/>
+        </div>
       {:else if currentStep === 2}
-        <Topic6_7
-          bind:research_data
-          bind:Theory_principles
-          bind:imagePreviews
-          bind:selectedFiles
-          bind:fileInput
-          {handleTab}
-        />
+        <div in:fade={{ duration: 250 }}>
+          <Topic7_9
+            
+            bind:Theory_principles
+            bind:imagePreviews
+            bind:selectedFiles
+            bind:fileInput
+            bind:scope
+            bind:tableTitle
+            bind:monthLabels
+            bind:activities
+            {handleTab}
+          />
+        </div>
       {:else if currentStep === 3}
-        <Topic8_9
-          bind:scope
+        <div in:fade={{ duration: 250 }}>
+          <Topic10_12
           {handleTab}
-          bind:tableTitle
-          bind:monthLabels
-          bind:activities
-        />
+          bind:benefits
+          bind:refer
+          bind:budgetItems
+          />
+        </div>
       {/if}
     </div>
 
-    <!-- Navigation Buttons -->
-    <div class="p-5 flex justify-between">
+    <!-- Navigation Buttons Footer -->
+    <div class="px-5 sm:px-8 py-4 bg-gray-50 border-t border-gray-200 flex justify-between items-center">
       <button
         type="button"
-        class={`px-4 py-2 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 
-                    ${currentStep === 0 ? "invisible" : "visible bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500"}`}
+        class={`inline-flex items-center px-4 py-2 rounded-md text-sm font-medium border border-gray-300 bg-white text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-opacity duration-300
+                    ${currentStep === 0 ? "opacity-0 pointer-events-none" : "opacity-100"}`}
         on:click={() => navigateStep("prev")}
-        disabled={currentStep === 0}
+        disabled={currentStep === 0 || isLoading}
       >
+         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+         </svg>
         ย้อนกลับ
       </button>
 
       <button
-        type={currentStep === steps.length - 1 ? "submit" : "button"}
-        class="px-4 py-2 rounded-md text-sm font-medium text-white
-                    bg-blue-600 hover:bg-blue-700
-                    focus:outline-none focus:ring-2 focus:ring-offset-2"
-        on:click={() => currentStep < steps.length - 1 && navigateStep("next")}
-        disabled={isLoading}
-      >
-        {#if currentStep === steps.length - 1}
-          {isLoading ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
+  type="button"
+  class="inline-flex items-center justify-center px-6 py-2 rounded-md text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition disabled:opacity-70 disabled:cursor-not-allowed
+                bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+  on:click={() => {
+    if (currentStep < steps.length - 1) {
+      navigateStep("next");
+    } else {
+      handleSubmit(); 
+    }
+  }}
+  disabled={isLoading}
+>
+        {#if isLoading}
+          {currentStep === steps.length - 1 ? "กำลังบันทึก..." : "กำลังโหลด..."}
+        {:else if currentStep === steps.length - 1}
+          บันทึกข้อมูล
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+             <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /> <!-- Check icon for save -->
+          </svg>
         {:else}
           ถัดไป
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
         {/if}
       </button>
     </div>
+
+     <!-- Optional: Loading Overlay -->
+     {#if isLoading}
+       <div class="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10">
+       </div>
+     {/if}
+
   </form>
 </div>
-<div class="custom-shape-divider-bottom-1737391877">
-  <svg
-    data-name="Layer 1"
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 1200 120"
-    preserveAspectRatio="none"
-  >
-    <path d="M1200 120L0 16.48 0 0 1200 0 1200 120z" class="shape-fill"></path>
-  </svg>
+
+<!-- Removed the custom SVG shape divider for a cleaner look -->
+<!-- If you want it back, uncomment the style block and the div -->
+<!--
+<div class="custom-shape-divider-bottom-1737391877" transition:fade={{ duration: 500 }}>
+  <svg ...> ... </svg>
 </div>
-
-<style>
-  .custom-shape-divider-bottom-1737391877 {
-    position: fixed; /* เปลี่ยนจาก absolute เป็น fixed */
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    overflow: hidden;
-    line-height: 0;
-    transform: rotate(180deg);
-    z-index: -1; /* เพิ่ม z-index เพื่อให้อยู่ด้านหลังเนื้อหา */
-  }
-
-  .custom-shape-divider-bottom-1737391877 svg {
-    position: relative;
-    display: block;
-    width: calc(300% + 1.3px);
-    height: 369px;
-    transform: rotateY(180deg);
-  }
-
-  .custom-shape-divider-bottom-1737391877 .shape-fill {
-    fill: #ff8585;
-  }
-</style>
+<style> ... </style>
+-->

@@ -90,7 +90,7 @@
     }
 
     function goToAppointmentDetails(projectId) {
-        goto(`/TS_Dashboard/AppointmentDetail/${projectId}`);
+        goto(`/TS_Dashboard/Appointment/${projectId}`);
     }
 </script>
 

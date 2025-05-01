@@ -2,177 +2,137 @@
   export let data;
 
   import { goto } from "$app/navigation";
-  import {checkAuthStatus } from "$lib/auth";
+  import { checkAuthStatus } from "$lib/auth";
   import { warningToast } from "$lib/customtoast.js";
-  
+  import { fade } from 'svelte/transition'; // Import fade transition
+
   $: latestTerm = data.latestTerm;
+ 
 
   function handleNavigation(url) {
-    if(checkAuthStatus()){
-        goto(url);
-    }else{
+    if (checkAuthStatus()) {
+      goto(url);
+    } else {
       warningToast('กรุณา Login ก่อนใช้งาน');
       goto(`/login?redirect=${encodeURIComponent(url)}`);
     }
   }
 </script>
 
-<div class="m-5">
-  <a href="/" class="hover:underline">หน้าแรก</a> > <b>แบบเสนอโครงงาน</b>
-</div>
-<div class="flex justify-center items-center pb-10">
-  <div class="grid grid-rows-2 w-full max-w-5xl">
-    <!-- Row 1 -->
-    <div class="grid grid-cols-1 lg:grid-cols-10 relative w-full">
-      <!-- Column 1 (50%) -->
-      <div class="lg:col-span-5 col-span-1 animated-left">
-        <div class="block shadow-lg w-full transition-transform duration-200">
-          <div
-            class="flex flex-col justify-center items-center h-96 bg-white"
-            style="background-color: #FCFAEE;"
-          >
-            <div>
-              <p class="text-xl">📜 กรอกแบบฟอร์ม</p>
-              <br />
-              <p class="text-sm">
-                เริ่มต้นการกรอกข้อมูลเพื่อเสนอหัวข้อโครงงานได้ที่นี่
-              </p>
 
-              {#if latestTerm}
-                <button
-                  on:click={() =>
-                    handleNavigation(`/cpe02/form/${latestTerm.term}`)}
-                  class="mt-3 bg-blue-500 text-black px-7 py-1 border-none hover:bg-blue-600"
-                >
-                  กรอกแบบฟอร์ม เทอม : {latestTerm.term}
-                </button>
-              {:else}
-                <button
-                  class="mt-3 bg-gray-500 text-black px-7 py-1 border-none"
-                  disabled
-                >
-                  <p>ยังไม่มีแบบฟอร์มที่เปิดอยู่</p>
-                </button>
-              {/if}
-            </div>
-          </div>
+<!-- Main Content Area -->
+<div class="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] px-4 py-10 bg-gradient-to-br from-blue-50 via-white to-green-50">
+  <!-- New Card: View Course Details -->
+  <div class="w-full max-w-5xl text-center mb-8" >
+    <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-3">แบบเสนอโครงงาน CE02</h1>
+    <p class="text-lg text-gray-600">จัดการแบบฟอร์มเสนอหัวข้อโครงงานคอมพิวเตอร์ของคุณ</p>
+  </div>
+
+  <div class="w-full max-w-5xl mb-8" transition:fade={{ duration: 500 }}>
+    <div
+      class="bg-white rounded-xl shadow-lg overflow-hidden transform transition-all duration-300 hover:shadow-xl hover:scale-[1.03]"
+    >
+      <div class="p-8 flex flex-col items-center text-center h-full">
+        <div class="mb-5 text-purple-600">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-book-2" width="64" height="64" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+            <path d="M19 4v16h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12z" />
+            <path d="M19 16h-12a2 2 0 0 0 -2 2" />
+            <path d="M9 8h6" />
+          </svg>
         </div>
+        <h2 class="text-2xl font-semibold text-gray-800 mb-3">รายละเอียดรายวิชา</h2>
+        <p class="text-gray-600 mb-6 flex-grow">
+          ดูรายละเอียดรายวิชาและข้อมูลที่เกี่ยวข้องกับโครงงาน
+        </p>
+        <a href="/cpe02/course"
+         
+          class="w-full mt-auto bg-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-purple-700 transition duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+        >
+          ดูรายละเอียดรายวิชา
+        </a>
       </div>
+    </div>
+  </div>
 
-      <!-- Column 2 (50%) -->
-      <div class="lg:col-span-5 col-span-1 hidden md:block">
-        <img
-          src="/cpe-01.jpg"
-          alt=""
-          class="w-full h-auto max-h-96 object-cover"
-        />
+
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-5xl">
+    <!-- Card 1: Fill Form -->
+    <div
+      class="bg-white rounded-xl shadow-lg overflow-hidden transform transition-all duration-300 hover:shadow-xl hover:scale-[1.03]"
+    >
+      <div class="p-8 flex flex-col items-center text-center h-full">
+        <div class="mb-5 text-blue-600">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-file-pencil" width="64" height="64" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+            <path d="M14 3v4a1 1 0 0 0 1 1h4" />
+            <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" />
+            <path d="M10 18l5 -5a1.414 1.414 0 0 0 -2 -2l-5 5v2h2z" />
+          </svg>
+        </div>
+        <h2 class="text-2xl font-semibold text-gray-800 mb-3">กรอกแบบฟอร์ม</h2>
+        <p class="text-gray-600 mb-6 flex-grow">
+          เริ่มต้นการกรอกข้อมูลเพื่อเสนอหัวข้อโครงงานสำหรับภาคการศึกษาล่าสุด
+        </p>
+
+        {#if latestTerm}
+          <button
+            on:click={() => handleNavigation(`/cpe02/form/${encodeURIComponent(latestTerm.term)}`)}
+            class="w-full mt-auto bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          >
+            กรอกฟอร์ม เทอม: {latestTerm.term}
+          </button>
+        {:else}
+          <button
+            class="w-full mt-auto bg-gray-400 text-white px-6 py-3 rounded-lg font-medium cursor-not-allowed"
+            disabled
+          >
+            ยังไม่มีแบบฟอร์มที่เปิดให้กรอก
+          </button>
+        {/if}
       </div>
     </div>
 
-    <!-- Row 2 -->
-    <div class="grid grid-cols-1 lg:grid-cols-10 w-full relative">
-      <!-- Column 1 (30%) -->
-      <div class="lg:col-span-5 col-span-1 hidden md:block">
-        <img
-          src="/cpe-02.jpg"
-          alt=""
-          class="w-full h-auto max-h-96 object-cover"
-        />
-      </div>
-
-      <!-- Column 2 (70%) -->
-      <div class="lg:col-span-5 col-span-1 animated-right">
-        <div class="block shadow-lg w-full transition-transform duration-200">
-          <div
-            class="flex flex-col justify-center items-center h-96 bg-white"
-            style="background-color: #FCFAEE;"
-          >
-            <div>
-              <p class="text-xl">📊ข้อมูลแบบเสนอโครงงาน</p>
-              <br />
-              <p class="text-sm">ดูข้อมูลที่ได้ทำการเสนอไว้ทั้งหมด</p>
-              <p class="text-sm">พร้อมการอัพเดทสถานะ</p>
-              <br />
-              <a
-                href="/cpe02/data"
-                class="mt-3 bg-green-500 text-black px-7 py-1 border-none hover:bg-green-600"
-              >
-                ดูข้อมูล
-              </a>
-            </div>
-          </div>
-        </div>
+    <!-- Card 2: View Data -->
+    <div
+      class="bg-white rounded-xl shadow-lg overflow-hidden transform transition-all duration-300 hover:shadow-xl hover:scale-[1.03]"
+    >
+      <div class="p-8 flex flex-col items-center text-center h-full">
+         <div class="mb-5 text-green-600">
+           <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-folder-search" width="64" height="64" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+             <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+             <path d="M11 19h-6a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2h4l3 3h7a2 2 0 0 1 2 2v4" />
+             <circle cx="18" cy="18" r="3" /> 
+             <path d="M20.2 20.2l1.8 1.8" />
+           </svg>
+         </div>
+        <h2 class="text-2xl font-semibold text-gray-800 mb-3">ดูข้อมูลโครงงาน</h2>
+        <p class="text-gray-600 mb-6 flex-grow">
+          ตรวจสอบสถานะและรายละเอียดของแบบเสนอโครงงานที่คุณได้ส่งไปแล้วทั้งหมด
+        </p>
+        <a
+          href="/cpe02/data"
+          class="w-full mt-auto inline-block bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+        >
+          ดูข้อมูลที่ส่งแล้ว
+        </a>
       </div>
     </div>
   </div>
 </div>
 
-<div class="custom-shape-divider-bottom-1737392204">
-  <svg
-    data-name="Layer 1"
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 1200 120"
-    preserveAspectRatio="none"
-  >
-    <path
-      d="M985.66,92.83C906.67,72,823.78,31,743.84,14.19c-82.26-17.34-168.06-16.33-250.45.39-57.84,11.73-114,31.07-172,41.86A600.21,600.21,0,0,1,0,27.35V120H1200V95.8C1132.19,118.92,1055.71,111.31,985.66,92.83Z"
-      class="shape-fill"
-    ></path>
-  </svg>
-</div>
 
 <style>
-  .custom-shape-divider-bottom-1737392204 {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    overflow: hidden;
-    line-height: 0;
-    z-index: -1;
+
+  /* Ensure content area has enough padding at the bottom if shape divider overlaps */
+  .flex.flex-col.items-center {
+      padding-bottom: 80px; /* Add padding if the fixed divider overlaps content */
   }
 
-  .custom-shape-divider-bottom-1737392204 svg {
-    position: relative;
-    display: block;
-    width: calc(274% + 1.3px);
-    height: 210px;
-    transform: rotateY(180deg);
+  /* Add min-height to ensure background covers viewport even with little content */
+  .min-h-\[calc\(100vh-200px\)\] {
+      min-height: calc(100vh - 150px); /* Adjust based on header/footer height */
   }
 
-  .custom-shape-divider-bottom-1737392204 .shape-fill {
-    fill: #5052ff;
-  }
-
-  .animated-left {
-    opacity: 0; /* เริ่มต้นโปร่งใส */
-    transform: translateX(100px); /* เริ่มต้นเลื่อนจากด้านล่าง */
-    animation: slideIn 1.5s ease-out forwards; /* เรียกใช้ keyframes */
-  }
-  .animated-right {
-    opacity: 0; /* เริ่มต้นโปร่งใส */
-    transform: translateX(100px); /* เริ่มต้นเลื่อนจากด้านล่าง */
-    animation: slideOut 1.5s ease-out forwards; /* เรียกใช้ keyframes */
-  }
-  @keyframes slideIn {
-    0% {
-      opacity: 0;
-      transform: translateY(100px);
-    }
-    100% {
-      opacity: 1;
-      transform: translateX(0);
-    }
-  }
-
-  @keyframes slideOut {
-    0% {
-      opacity: 0;
-      transform: translateY(100px);
-    }
-    100% {
-      opacity: 1;
-      transform: translateX(0);
-    }
-  }
 </style>

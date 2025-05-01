@@ -1,10 +1,7 @@
 
 
 <div class="relative">
-  <div class="mt-5 mx-5">
-    <b>หน้าแรก</b>
-  </div>
- 
+  
   <section class="mt-28">
     <div class="grid md:grid-cols-2 items-center animated-text">
       <div class="p-5 text-end">

@@ -1,147 +1,63 @@
+<!-- src/routes/TS_Dashboard/+page.svelte -->
 <script>
-    import { fade, slide } from 'svelte/transition';
-    import { onMount } from 'svelte';
     import { goto } from '$app/navigation';
-    
-    // Component imports
-    import OpenForm from './open_form.svelte';
-    import Addtask from './Addtask.svelte';
-    import SelectProject from './Select_Project.svelte';
-    import Table_director from './Table_director.svelte';
-    import Appointment from './Appointment.svelte';
-    import { getCookie } from "cookies-next";
-    import { checkAuthStatus } from '$lib/auth';
-
-    let isOpen = true;
-    let selectedComponent = 'SelectProject';  // Default to Select_Project
-    let userRole = '';
-
-    const components = {
-        OpenForm,
-        Addtask,
-        SelectProject,
-        Table_director,
-        Appointment,
-    };
-
-    // Define different menu items based on role
-    const getMenuItems = (role) => {
-        // Full menu for admin and subject_teacher
-        if (role === 'admin' || role === 'subject_teacher') {
-            return [
-                { id: 'OpenForm', label: 'เปิด/ปิด ฟอร์ม', icon: '<svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-forms"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3a3 3 0 0 0 -3 3v12a3 3 0 0 0 3 3" /><path d="M6 3a3 3 0 0 1 3 3v12a3 3 0 0 1 -3 3" /><path d="M13 7h7a1 1 0 0 1 1 1v8a1 1 0 0 1 -1 1h-7" /><path d="M5 7h-1a1 1 0 0 0 -1 1v8a1 1 0 0 0 1 1h1" /><path d="M17 12h.01" /><path d="M13 12h.01" /></svg>' },
-                { id: 'Addtask', label: 'มอบหมายงาน', icon: '<svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-plus"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14" /><path d="M5 12l14 0" /></svg>' },
-                { id: 'SelectProject', label: 'เลือกเป็นกรรมการ', icon: '<svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-select"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 3m0 2a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z" /><path d="M9 11l3 3l3 -3" /></svg>' },
-                { id: 'Table_director', label: 'ตารางลงชื่อกรรมการ', icon: `<svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-table"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 5a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14z" /><path d="M3 10h18" /><path d="M10 3v18" /></svg>`},
-                { id: 'Appointment', label: 'นัดหมายการสอบ', icon: `<svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-clock"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 7v5l3 3" /></svg>`},
-            ];
-        } 
-        // Limited menu for regular teachers
-        else if (role === 'teacher') {
-            return [
-                { id: 'SelectProject', label: 'เลือกเป็นกรรมการ', icon: '<svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-select"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 3m0 2a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z" /><path d="M9 11l3 3l3 -3" /></svg>' },
-                { id: 'Table_director', label: 'ตารางลงชื่อกรรมการ', icon: `<svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-table"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 5a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14z" /><path d="M3 10h18" /><path d="M10 3v18" /></svg>`},
-                { id: 'Appointment', label: 'นัดหมายการสอบ', icon: `<svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-clock"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 7v5l3 3" /></svg>`},
-
-            ];
-        }
-        // Default empty menu
-        return [];
-    };
-
-    let menuItems = [];
-
-    function toggleSidebar() {
-        isOpen = !isOpen;
+    import { fade } from 'svelte/transition';
+  
+    export let data;
+    const { menuItems } = data;
+  
+    $: console.log("Menu Items:", menuItems);
+    $: visibleMenuItems = menuItems.filter(item => item.id !== '');
+  
+    function handleCardClick(itemId) {
+      if (itemId) {
+        goto(`/TS_Dashboard/${itemId}`);
+      } else {
+        console.warn("ไม่สามารถนำทางได้: Item ID ว่างเปล่า");
+      }
     }
-
-    function selectComponent(id) {
-        selectedComponent = id;
-    }
-
- 
-    onMount(() => {
-        if(checkAuthStatus()){
-            userRole = getCookie('role');
-        // Set menu items based on role
-        menuItems = getMenuItems(userRole);
-        
-        // If teacher role, force select the Select_Project component
-        if (userRole === 'teacher') {
-            selectedComponent = 'SelectProject';
-        }
-        
-        // Redirect if unauthorized
-        if (userRole !== 'subject_teacher' && userRole !== 'admin' && userRole !== 'teacher') {
-            goto('/cpe02');
-        }
-        }
-    });
-</script>
-
-{#if userRole === 'subject_teacher' || userRole === 'admin' || userRole === 'teacher'}
-    <div class="flex h-screen bg-gray-100">
-        <!-- Sidebar -->
-        <div class={` ${isOpen ? 'w-64' : 'w-20'} duration-300 h-screen bg-gray-800 relative sticky top-0`}>
-            <!-- Toggle Button -->
-            <button 
-                class="absolute -right-3 top-9 bg-gray-800 text-white p-1 rounded-full hover:bg-gray-700"
-                on:click={toggleSidebar}
-            >
-                {#if isOpen}
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                    </svg>
-                {:else}
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                    </svg>
-                {/if}
-            </button>
-
-            <!-- Sidebar Content -->
-            <div class="p-4">
-                <!-- Logo/Title -->
-                <div class="flex items-center space-x-3 mb-8">
-                    <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                        <span class="text-white font-bold">D</span>
-                    </div>
-                    {#if isOpen}
-                        <h1 transition:fade class="text-white font-medium text-xl">Dashboard</h1>
-                    {/if}
-                </div>
-
-                <!-- Menu Items - Dynamically generated based on role -->
-                <nav class="space-y-2">
-                    {#each menuItems as item}
-                        <button
-                            class={`w-full flex items-center p-3 rounded-lg transition-colors duration-200
-                                ${selectedComponent === item.id ? 'bg-blue-500 text-white' : 'text-gray-300 hover:bg-gray-700'}
-                                ${!isOpen ? 'justify-center' : ''}`}
-                            on:click={() => selectComponent(item.id)}
-                        >
-                            <span class="text-xl">{@html item.icon}</span>
-                            {#if isOpen}
-                                <span transition:slide class="ml-3">{item.label}</span>
-                            {/if}
-                        </button>
-                    {/each}
-                </nav>
+  </script>
+  
+  <div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold text-center text-gray-800 mb-10">
+      Teacher Dashboard
+    </h1>
+  
+    {#if visibleMenuItems.length > 0}
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+        {#each visibleMenuItems as item (item.id)}
+          <button
+            on:click={() => handleCardClick(item.id)}
+            class="bg-white rounded-xl shadow-lg p-6 text-center transform transition-all duration-300 hover:shadow-xl hover:scale-105 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 flex flex-col items-center justify-start h-full min-h-[180px]"
+            transition:fade={{ duration: 300 }}
+            aria-label={`ไปที่ ${item.label}`}
+          >
+            <div class="mb-4 text-indigo-600 w-12 h-12 flex items-center justify-center">
+              {@html item.icon}
             </div>
-        </div>
-
-        <!-- Main Content -->
-        <div class="flex-1 p-6 overflow-y-auto">
-            <svelte:component this={components[selectedComponent]} />
-        </div>
-    </div>
-{/if}
-
-<style>
-    .h-screen {
-        height: 100vh;
+            <h2 class="text-xl font-semibold text-gray-800">
+              {item.label}
+            </h2>
+          </button>
+        {/each}
+      </div>
+    {:else if menuItems.length > 0}
+      <p class="text-center text-gray-500 mt-10">
+        คุณอยู่ในหน้าหลักของ Dashboard แล้ว
+      </p>
+    {:else}
+      <p class="text-center text-gray-500 mt-10">
+        ไม่มีส่วนแดชบอร์ดที่ใช้งานได้สำหรับบทบาทของคุณ
+      </p>
+    {/if}
+  </div>
+  
+  <style>
+    :global(.icon) {
+      display: inline-block;
+      vertical-align: middle;
+      width: 100%;
+      height: 100%;
     }
-    .h-screen-full {
-        height: 100vh;
-    }
-</style>
+  </style>
+  

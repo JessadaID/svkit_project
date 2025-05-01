@@ -1,4 +1,4 @@
-<div class="flex items-center justify-center min-h-screen bg-slate-50">
+<div class="flex items-center justify-center min-h-screen ">
     <div class="relative">
       <div class="w-16 h-16 border-2 border-slate-200 border-t-slate-600 rounded-full animate-spin"></div>
       <p class="mt-4 text-sm text-slate-600 text-center">กำลังโหลด...</p>

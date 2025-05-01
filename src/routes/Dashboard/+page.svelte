@@ -43,9 +43,9 @@
   }
 </script>
 
-<div class="flex">
+<div class="flex h-[calc(100vh-4rem)]"> 
   <!-- Sidebar -->
-  <div class="w-64 bg-gray-800 text-white p-4 h-screen sticky top-0">
+  <div class="w-64 bg-gray-800 text-white p-4 h-full"> 
     {#each menuItems as item}
       <button
       class="w-full flex py-2 px-4 mb-2 text-left rounded hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-600 {activeComponent === item.id ? 'bg-gray-700' : ''}"
@@ -60,11 +60,12 @@
   </div>
 
   <!-- Main Content -->
-  <div class="flex-1 p-4 overflow-y-auto">
+  <div class="flex-1 p-4 overflow-y-auto"> 
     {#if activeComponent === "searchMember"}
       <SearchMember />
-    {:else if activeComponent === "Main"}
+      {:else if activeComponent === "Main"}
       <Main />
     {/if}
   </div>
 </div>
+

@@ -9,8 +9,9 @@ let isLoggedIn = false;
  * ตั้งค่า Cookies หลังจากล็อกอินสำเร็จ
  * @param {string} email - อีเมลของผู้ใช้
  * @param {string} role - บทบาทของผู้ใช้
+ * @param {string} name - ชื่อของผู้ใช้
  */
-export function setLoginCookies(email, role) {
+export function setLoginCookies(email, role,name) {
     setCookie('email', email, {
         path: '/',
         //maxAge: 60 * 60 * 3, // อายุ Cookies 3 ชม.
@@ -27,6 +28,13 @@ export function setLoginCookies(email, role) {
         sameSite: 'strict',
     });
     //console.log('Cookies have been set:', { email, role });
+    setCookie('name', name, {
+      path: '/',
+      //maxAge: 60 * 60 * 3,
+      maxAge: 60 * 60 * 3,
+      secure: true,
+      sameSite: 'strict',
+  });
 }
 
 /**
@@ -35,6 +43,7 @@ export function setLoginCookies(email, role) {
 export function clearLoginCookies() {
     deleteCookie('email', { path: '/' });
     deleteCookie('role', { path: '/' });
+    deleteCookie('name', { path: '/' });
     //console.log('Cookies have been clear');
 }
 
@@ -52,10 +61,11 @@ export async function isUserLoggedIn() {
 export function checkAuthStatus() {
     const email = getCookie("email");
     const role = getCookie("role");
+    const name = getCookie("name");
 
     //console.log("Checking cookies:", { email, role });
 
-    if (!email || !role) {
+    if (!email || !role || !name) {
       console.warn("Missing cookies. Logging out.");
       logout();
       return false;

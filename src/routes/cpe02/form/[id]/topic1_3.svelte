@@ -1,240 +1,217 @@
 <script>
-  export let term,
-    project_name_th,
-    project_name_en,
-    members,
-    adviser,
-    External_consultant;
+  import { dangerToast } from "$lib/customtoast";
+  import { onMount } from "svelte";
+
+  export let term;
+  export let project_name_th;
+  export let project_name_en;
+  export let members;
+  // Ensure adviser is initialized as an array (likely already is)
+  export let adviser = []; // This array will now hold objects { name, email }
+  export let External_consultant;
 
   function addMemberRow() {
-    members = [...members, ""]; // เพิ่มสมาชิกใหม่ใน array
+    members = [...members, ""];
   }
 
-  // ฟังก์ชันในการลบแถวล่างสุด
   function deleteLastMember() {
     if (members.length > 1) {
-      members = members.slice(0, -1); // ลบสมาชิกแถวสุดท้าย
+      members = members.slice(0, -1);
     }
   }
+
+  let adviserList = []; // This will hold { id, value (email), label (name), email, Approval }
+
+  onMount(async () => {
+    try {
+      const res = await fetch(`/api/teacher-data`);
+      if (res.ok) {
+        const responseData = await res.json();
+        if (responseData.data && Array.isArray(responseData.data)) {
+          adviserList = responseData.data.map((teacher, index) => ({
+            id: `adviser${index + 1}`,
+            value: teacher.email, // Keep value for potential reference, but use email directly
+            label: teacher.name,
+            email: teacher.email,
+            Approval: teacher.Approval
+          }));
+        }
+      } else {
+         throw new Error(`Failed to fetch teacher data: ${res.statusText}`);
+      }
+    } catch (error) {
+      console.error("Error fetching adviser list:", error);
+      dangerToast(`ไม่สามารถดึงข้อมูลอาจารย์ที่ปรึกษาได้: ${error.message}`);
+    }
+  });
+
+  // Function to check if an adviser is currently selected (by email)
+  function isAdviserSelected(advEmail) {
+    return adviser.some(selected => selected.email === advEmail);
+  }
+
+  // Function to handle checkbox changes
+  function handleAdviserChange(event, adv) {
+    const isChecked = event.target.checked;
+    const adviserObject = { name: adv.label, email: adv.email }; // Create the object { name, email }
+
+    if (isChecked) {
+      // Add the object if it's not already present
+      if (!isAdviserSelected(adv.email)) {
+        adviser = [...adviser, adviserObject];
+      }
+    } else {
+      // Remove the object based on email match
+      adviser = adviser.filter(selected => selected.email !== adv.email);
+    }
+    // console.log("Updated advisers:", adviser); // For debugging
+  }
+
 </script>
 
-<div>
-  <label for="name" class="block text-lg font-medium"
-    >ภาคเรียน <b class="text-red-500">*</b></label
-  >
-  <input
-    type="text"
-    name="term"
-    class="p-2 w-4/12"
-    bind:value={term}
-    required
-    disabled
-  />
+<!-- Use space-y-6 for consistent vertical spacing between sections -->
+<div class="space-y-6">
 
-  <!--===============================================-->
-
-  <label for="text" class="block text-lg font-medium mt-3"
-    >ชื่อโครงงาน (ภาษาไทย) <b class="text-red-500">*</b></label
-  >
-  <input
-    type="text"
-    placeholder="ชื่อโครงงาน"
-    name="project_name"
-    required
-    class="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
-    bind:value={project_name_th}
-  />
-
-  <!--===============================================-->
-
-  <label for="text" class="block text-lg font-medium mt-3"
-    >ชื่อโครงงาน (ภาษาอังกฤษ) <b class="text-red-500">*</b></label
-  >
-  <input
-    type="text"
-    placeholder="Name Project"
-    required
-    class="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
-    bind:value={project_name_en}
-  />
-
-  <!--===============================================-->
-  <label for="text" class="block text-lg font-medium mt-3"
-    >ชื่อผู้เสนอโครงงาน <b class="text-red-500">*</b>
-  </label>
-  <button type="button" class="bg-white p-1 m-2 rounded" on:click={addMemberRow}
-    >เพิ่มสมาชิก</button
-  >
-  <button
-    type="button"
-    on:click={deleteLastMember}
-    class="bg-red-500 text-white p-1 m-2 rounded"
-  >
-    ลบสมาชิก
-  </button>
-  <div class="input-row grid md:grid-cols-2 gap-4">
-    {#each members as member, index}
-      <input
-        type="text"
-        bind:value={members[index]}
-        placeholder="Member Name"
-        required
-        class="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 m-1"
-      />
-    {/each}
+  <!-- Section: Term -->
+  <div>
+    <label class="block text-sm font-medium text-gray-700"
+      >ภาคเรียน <span class="text-red-500 font-bold">*</span></label
+    >
+    <p class="mt-1 text-base text-gray-900 bg-gray-100 px-3 py-2 rounded-md inline-block">{term}</p>
   </div>
 
-  <!--===============================================-->
+  <!-- Section: Project Name TH -->
+  <div>
+    <label for="project_name_th" class="block text-sm font-medium text-gray-700"
+      >ชื่อโครงงาน (ภาษาไทย) <span class="text-red-500 font-bold">*</span></label
+    >
+    <input
+      type="text"
+      id="project_name_th"
+      placeholder="ระบุชื่อโครงงานภาษาไทย"
+      required
+      class="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+      bind:value={project_name_th}
+    />
+  </div>
 
-  <label for="adviser" class="block text-lg font-medium mt-3">
-    อาจารย์ที่ปรึกษาโครงงาน <b class="text-red-500">*</b>
-  </label>
-  <div class="h-48 overflow-y-auto border rounded-md p-2 mt-2 bg-white">
-    <div class="space-y-2">
-      <div class="flex items-center">
-        <input
-          type="checkbox"
-          id="adviser1"
-          bind:group={adviser}
-          value="ผู้ช่วยศาสตราจารย์ อนันท์ ทับเกิด"
-          class="w-4 h-4"
-        />
-        <label for="adviser1" class="ml-2"
-          >ผู้ช่วยศาสตราจารย์ อนันท์ ทับเกิด</label
-        >
-      </div>
-      <div class="flex items-center">
-        <input
-          type="checkbox"
-          id="adviser2"
-          bind:group={adviser}
-          value="นายกิตตินันท์ น้อยมณี"
-          class="w-4 h-4"
-        />
-        <label for="adviser2" class="ml-2">นายกิตตินันท์ น้อยมณี</label>
-      </div>
-      <div class="flex items-center">
-        <input
-          type="checkbox"
-          id="adviser3"
-          bind:group={adviser}
-          value="ผู้ช่วยศาสตราจารย์ ขวัญชัย เอื้อวิริยานุกูล"
-          class="w-4 h-4"
-        />
-        <label for="adviser3" class="ml-2"
-          >ผู้ช่วยศาสตราจารย์ ขวัญชัย เอื้อวิริยานุกูล</label
-        >
-      </div>
-      <div class="flex items-center">
-        <input
-          type="checkbox"
-          id="adviser4"
-          bind:group={adviser}
-          value="นายจักรภพ ใหม่เสน"
-          class="w-4 h-4"
-        />
-        <label for="adviser4" class="ml-2">นายจักรภพ ใหม่เสน</label>
-      </div>
-      <div class="flex items-center">
-        <input
-          type="checkbox"
-          id="adviser5"
-          bind:group={adviser}
-          value="นายณัฐชาสิทธิ์ ชูเกียรติขจร"
-          class="w-4 h-4"
-        />
-        <label for="adviser5" class="ml-2">นายณัฐชาสิทธิ์ ชูเกียรติขจร</label>
-      </div>
-      <div class="flex items-center">
-        <input
-          type="checkbox"
-          id="adviser6"
-          bind:group={adviser}
-          value="นายปณต พุกกะพันธุ์"
-          class="w-4 h-4"
-        />
-        <label for="adviser6" class="ml-2">นายปณต พุกกะพันธุ์</label>
-      </div>
-      <div class="flex items-center">
-        <input
-          type="checkbox"
-          id="adviser7"
-          bind:group={adviser}
-          value="นายปิยพล ยืนยงสถาวร"
-          class="w-4 h-4"
-        />
-        <label for="adviser7" class="ml-2">นายปิยพล ยืนยงสถาวร</label>
-      </div>
-      <div class="flex items-center">
-        <input
-          type="checkbox"
-          id="adviser8"
-          bind:group={adviser}
-          value="นายพิชิต ทนันชัย"
-          class="w-4 h-4"
-        />
-        <label for="adviser8" class="ml-2">นายพิชิต ทนันชัย</label>
-      </div>
-      <div class="flex items-center">
-        <input
-          type="checkbox"
-          id="adviser9"
-          bind:group={adviser}
-          value="นางสาวยุพดี หัตถสิน"
-          class="w-4 h-4"
-        />
-        <label for="adviser9" class="ml-2">นางสาวยุพดี หัตถสิน</label>
-      </div>
-      <div class="flex items-center">
-        <input
-          type="checkbox"
-          id="adviser10"
-          bind:group={adviser}
-          value="นายสมนึก สุระธง"
-          class="w-4 h-4"
-        />
-        <label for="adviser10" class="ml-2">นายสมนึก สุระธง</label>
-      </div>
-      <div class="flex items-center">
-        <input
-          type="checkbox"
-          id="adviser11"
-          bind:group={adviser}
-          value="นายภาณุเดช ทิพย์อักษร"
-          class="w-4 h-4"
-        />
-        <label for="adviser11" class="ml-2">นายภาณุเดช ทิพย์อักษร</label>
-      </div>
-      <div class="flex items-center">
-        <input
-          type="checkbox"
-          id="adviser12"
-          bind:group={adviser}
-          value="นายอนุพงศ์ ไพโรจน์"
-          class="w-4 h-4"
-        />
-        <label for="adviser12" class="ml-2">นายอนุพงศ์ ไพโรจน์</label>
-      </div>
-      <div class="flex items-center">
-        <input
-          type="checkbox"
-          id="adviser13"
-          bind:group={adviser}
-          value="นายอรรถพล วิเวก"
-          class="w-4 h-4"
-        />
-        <label for="adviser13" class="ml-2">นายอรรถพล วิเวก</label>
+  <!-- Section: Project Name EN -->
+  <div>
+    <label for="project_name_en" class="block text-sm font-medium text-gray-700"
+      >ชื่อโครงงาน (ภาษาอังกฤษ) <span class="text-red-500 font-bold">*</span></label
+    >
+    <input
+      type="text"
+      id="project_name_en"
+      placeholder="ระบุชื่อโครงงานภาษาอังกฤษ"
+      required
+      class="mt-1 p-2  block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+      bind:value={project_name_en}
+    />
+  </div>
+
+  <!-- Section: Members -->
+  <div>
+    <div class="flex justify-between items-center mb-2">
+      <label class="block text-sm font-medium text-gray-700"
+        >ชื่อผู้เสนอโครงงาน <span class="text-red-500 font-bold">*</span>
+      </label>
+      <div class="flex space-x-2">
+         <button
+            type="button"
+            class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition"
+            on:click={addMemberRow}
+          >
+             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+             </svg>
+            เพิ่ม
+          </button>
+          {#if members.length > 1}
+          <button
+            type="button"
+            on:click={deleteLastMember}
+            class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition disabled:opacity-50"
+            disabled={members.length <= 1}
+          >
+             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" viewBox="0 0 20 20" fill="currentColor">
+               <path fill-rule="evenodd" d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" clip-rule="evenodd" />
+             </svg>
+            ลบแถว
+          </button>
+          {/if}
       </div>
     </div>
+    <!-- Grid layout for member inputs -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
+      {#each members as member, index}
+        <input
+          type="text"
+          bind:value={members[index]}
+          placeholder="ชื่อ-สกุล ผู้เสนอโครงงาน {index + 1}"
+          required
+          class="block p-2  w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+        />
+      {/each}
+    </div>
+     {#if members.length === 1 && members[0] === ""}
+        <p class="mt-1 text-xs text-gray-500">กรุณากรอกชื่อผู้เสนอโครงงานอย่างน้อย 1 คน</p>
+     {/if}
   </div>
 
-  <label for="email" class="block text-lg font-medium mt-3"
-    >ที่ปรึกษาภายนอก (ถ้ามี)
-  </label>
-  <input
-    type="text"
-    placeholder="ไม่บังคับ"
-    class="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
-    bind:value={External_consultant}
-  />
+  <!-- Section: Advisers -->
+  <div>
+    <label class="block text-sm font-medium text-gray-700">
+      อาจารย์ที่ปรึกษาโครงงาน <span class="text-red-500 font-bold">*</span>
+    </label>
+    <div class="mt-1 max-h-60 overflow-y-auto border border-gray-300 rounded-md p-3 bg-gray-50 space-y-3">
+      {#if adviserList.length === 0}
+        <p class="text-gray-500 text-sm">กำลังโหลดรายชื่ออาจารย์...</p>
+      {:else}
+        {#each adviserList as adv (adv.id)}
+          <div class="relative flex items-start">
+            <div class="flex h-5 items-center">
+              <input
+                type="checkbox"
+                id={adv.id}
+                value={adv.email} 
+                checked={isAdviserSelected(adv.email)} 
+                on:change={(event) => handleAdviserChange(event, adv)}
+                class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              />
+            </div>
+            <div class="ml-3 text-sm">
+              <label
+                for={adv.id}
+              
+              >
+                {adv.label || adv.email}
+                {#if !adv.Approval}
+                  <span class="italic"> (ยังไม่ได้รับการอนุมัติ)</span>
+                {/if}
+              </label>
+            </div>
+          </div>
+        {/each}
+      {/if}
+    </div>
+     {#if adviser.length === 0}
+        <p class="mt-1 text-xs text-red-500">กรุณาเลือกอาจารย์ที่ปรึกษาอย่างน้อย 1 ท่าน (ที่ได้รับการอนุมัติแล้ว)</p>
+     {/if}
+  </div>
+
+  <!-- Section: External Consultant -->
+  <div>
+    <label for="external_consultant" class="block text-sm font-medium text-gray-700"
+      >ที่ปรึกษาภายนอก <span class="text-gray-500 text-xs">(ถ้ามี)</span>
+    </label>
+    <input
+      type="text"
+      id="external_consultant"
+      placeholder="ระบุชื่อ-สกุล และหน่วยงาน (ถ้ามี)"
+      class="mt-1  p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+      bind:value={External_consultant}
+    />
+  </div>
+
 </div>

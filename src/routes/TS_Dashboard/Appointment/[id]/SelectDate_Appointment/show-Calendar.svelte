@@ -25,7 +25,7 @@
         if (Array.isArray(data)) {
             data.forEach(userData => {
                 if (userData && userData.email && userData.savedSelections) {
-                    const { email, savedSelections } = userData;
+                    const { email, savedSelections ,name } = userData;
 
                     // Find if user already exists
                     const userIndex = userSelections.findIndex(user => user.userId === email);
@@ -47,7 +47,7 @@
                         // Add new user
                         userSelections = [...userSelections, {
                             userId: email,
-                            userName: email, // You might want to get the user's name from somewhere else
+                            userName: name, // You might want to get the user's name from somewhere else
                             color: getRandomColor(), // generate a random color
                             selectedDates: savedSelections.map(item => {
                                 if (item.type === 'single') {
@@ -63,7 +63,7 @@
             });
         } else if (data && data.email && data.savedSelections) {
             // Handle single user data (for backward compatibility)
-            const { email, savedSelections } = data;
+            const { email, savedSelections , name} = data;
             const userIndex = userSelections.findIndex(user => user.userId === email);
 
             if (userIndex > -1) {
@@ -81,7 +81,7 @@
             } else {
                 userSelections = [...userSelections, {
                     userId: email,
-                    userName: email,
+                    userName: name,
                     color: getRandomColor(),
                     selectedDates: savedSelections.map(item => {
                         if (item.type === 'single') {
@@ -244,7 +244,7 @@
                 
                 {#each userSelections as user}
                     <tr>
-                        <td class="border border-gray-300 p-2 font-medium">{user.userName}</td>
+                        <td class="border border-gray-300 p-2 font-medium whitespace-nowrap">{user.userName}</td>
                         {#each Array(daysInMonth) as _, dayIndex}
                             {@const day = dayIndex + 1}
                             <td class="border border-gray-300 p-1 text-center 

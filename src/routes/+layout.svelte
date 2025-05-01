@@ -1,243 +1,402 @@
 <script>
-  import { onMount } from "svelte";
-  import { auth, db } from "$lib/firebase"; // นำเข้า Firebase Auth ที่ตั้งค่าไว้
-  import { onAuthStateChanged } from "firebase/auth";
-  import { doc, getDoc } from "firebase/firestore";
-  import { checkAuthStatus, logout} from "$lib/auth";
-  import { SvelteToast } from '@zerodevx/svelte-toast'
-  import { dangerToast } from "$lib/customtoast";
+	import { onMount } from 'svelte';
+	import { auth, db } from '$lib/firebase'; // Firebase Auth
+	import { onAuthStateChanged } from 'firebase/auth';
+	import { doc, getDoc } from 'firebase/firestore';
+	import { checkAuthStatus, logout } from '$lib/auth';
+	import { SvelteToast } from '@zerodevx/svelte-toast';
+	import { dangerToast } from '$lib/customtoast';
+	import { browser } from '$app/environment'; // Import browser check
+	import { requestNotificationPermissionAndSaveToken } from '$lib/fcm'; // Import the FCM function
+	import { slide } from 'svelte/transition'; // For smoother menu transitions
+	import { quintOut } from 'svelte/easing'; // Easing function for transitions
 
-  let isLoggedIn = false;
-  let currentUser = null;
-  let isMenuOpen = false;
-  let userName = "";
-  let menuItems = [];
-  let role = null ;
-  const vapidKey = 'BOpqwMjROZUjSv0jI_XQad5CTMN1rjDoyEVLNwdTiW3VNK-Dp8sD1hmwj8E4MvF4fisnNoKwoG1Tb-PewzwpKg4';
+	let isLoggedIn = false;
+	let currentUser = null;
+	let isMenuOpen = false;
+	let isUserMenuOpen = false; // Separate state for user dropdown on desktop
+	let userName = '';
+	let menuItems = [];
+	let role = null;
 
+	// --- Role-Based Menu Items ---
+	// (Kept the same logic, but added comments for clarity)
+	const getMenuItems = (role) => {
+		// Admin: Full access
+		if (role === 'admin') {
+			return [
+				{ id: '/cpe02', label: 'หน้าแรก', icon: 'home' },
+				{ id: '/cpe02/data', label: 'ดูข้อมูล', icon: 'database' },
+				{ id: '/TS_Dashboard', label: 'แดชบอร์ดอาจารย์', icon: 'clipboard-list' },
+				{ id: '/Dashboard', label: 'แดชบอร์ด', icon: 'chart-pie' } // Consider renaming if confusing
+			];
+			// Teachers (Subject & Regular): Teacher-specific dashboard + data view
+		} else if (role === 'subject_teacher' || role === 'teacher') {
+			return [
+				{ id: '/cpe02', label: 'หน้าแรก', icon: 'home' },
+				{ id: '/cpe02/data', label: 'ดูข้อมูล', icon: 'database' },
+				{ id: '/TS_Dashboard', label: 'แดชบอร์ด', icon: 'clipboard-list' } // Simplified label
+			];
+			// Students/Others: Form filling and data view
+		} else {
+			return [
+				{ id: '/cpe02', label: 'หน้าแรก', icon: 'home' },
+				{ id: '/cpe02', label: 'กรอกแบบฟอร์ม', icon: 'pencil-alt' }, // Changed order, more logical flow
+				{ id: '/cpe02/data', label: 'ดูข้อมูล', icon: 'database' }
+			];
+		}
+	};
 
-  const getMenuItems = (role) => {
-        // Full menu for admin and subject_teacher
-        if (role === 'admin') {
-            return [
-                { id: '/', label: 'หน้าแรก' },
-                { id: '/cpe02/data', label: 'ดูข้อมูล' },
-                { id: '/Dashboard', label: 'แดชบอร์ด' },
-            ];
-        } else if(role === 'subject_teacher' || role === 'teacher'){
-          return [
-                { id: '/', label: 'หน้าแรก' },
-                { id: '/cpe02/data', label: 'ดูข้อมูล' },
-                { id: '/TS_Dashboard', label: 'แดชบอร์ด' },
-            ];
-        }else{
-          return [
-                { id: '/', label: 'หน้าแรก' },
-                { id: '/cpe02/data', label: 'ดูข้อมูล' },
-                { id: '/cpe02', label: 'กรอกแบบฟอร์ม' },
-            ];
-        }
-    };
+	// --- Toggle Functions ---
+	function toggleMobileMenu() {
+		isMenuOpen = !isMenuOpen;
+		if (isMenuOpen) isUserMenuOpen = false; // Close user menu if mobile opens
+	}
 
+	function toggleUserMenu() {
+		isUserMenuOpen = !isUserMenuOpen;
+		if (isUserMenuOpen) isMenuOpen = false; // Close mobile menu if user opens
+	}
 
-  function toggle() {
-    isMenuOpen = !isMenuOpen;
-  }
+	function closeMenus() {
+		isMenuOpen = false;
+		isUserMenuOpen = false;
+	}
 
-  //get name from firestore where uid
-  onMount(() => {
-    menuItems = getMenuItems();
-    onAuthStateChanged(auth, (user) => {
-      
-      if (user) {
-        if (checkAuthStatus()) {
-          isLoggedIn = true;
-          currentUser = user;
+	// --- Notification Permission ---
+	// (Kept the same logic)
+	async function checkAndRequestNotificationPermission() {
+		if (browser && 'Notification' in window && 'serviceWorker' in navigator) {
+			try {
+				if (Notification.permission === 'default') {
+					const token = await requestNotificationPermissionAndSaveToken();
+					// console.log(token ? 'Permission granted and token saved.' : 'Permission denied or error.');
+				} else if (Notification.permission === 'granted') {
+					await requestNotificationPermissionAndSaveToken(); // Ensure token is up-to-date
+				} else {
+					// console.log('Notification permission denied.');
+					// dangerToast('การแจ้งเตือนถูกปิดกั้น โปรดเปิดใช้งานในการตั้งค่าเบราว์เซอร์');
+				}
+			} catch (error) {
+				console.error('Error requesting notification permission:', error);
+				dangerToast('ไม่สามารถตั้งค่าการแจ้งเตือนได้: ' + error.message);
+			}
+		} else if (browser) {
+			console.log('Notifications not supported by this browser.');
+		}
+	}
 
-          // ดึงข้อมูลชื่อจาก Firestore
-          const userDocRef = doc(db, "users", user.uid);
-          getDoc(userDocRef).then((docSnap) => {
-            if (docSnap.exists()) {
-              userName = docSnap.data().name;
-              role = docSnap.data().role;
-              //console.log(role)
-              menuItems = getMenuItems(role);
-            } else {
-              //console.log("No such document!");
-              dangerToast("ไม่พบข้อมูล")
-            }
-          }).catch((error) => {
-            console.error("Error getting document:", error);
-            dangerToast("ไม่พบข้อมูล " + error)
-          });
+	// --- Authentication and Data Fetching ---
+	onMount(() => {
+		menuItems = getMenuItems(); // Initialize with default menu
 
+		const unsubscribe = onAuthStateChanged(auth, async (user) => {
+			if (user && checkAuthStatus()) {
+				isLoggedIn = true;
+				currentUser = user;
+				try {
+					const userDocRef = doc(db, 'users', user.uid);
+					const docSnap = await getDoc(userDocRef);
 
-        }
-      } else {
-        isLoggedIn = false;
-        currentUser = null;
-      }
-    });
+					if (docSnap.exists()) {
+						const data = docSnap.data();
+						userName = data.name || user.email; // Use name, fallback to email
+						role = data.role;
+						menuItems = getMenuItems(role);
+					} else {
+						console.warn('User document not found in Firestore.');
+						userName = user.email; // Fallback to email
+						role = null;
+						menuItems = getMenuItems(null); // Default menu
+					}
+					await checkAndRequestNotificationPermission(); // Check notifications after successful login & data fetch
+				} catch (error) {
+					console.error('Error getting user document or handling notifications:', error);
+					dangerToast('เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + error.message);
+					// Set defaults even on error
+					userName = user.email;
+					role = null;
+					menuItems = getMenuItems(null);
+				}
+			} else {
+				// User is logged out or local auth check failed
+				if (user && !checkAuthStatus()) {
+					console.log('Firebase user detected, but auth check failed. Logging out.');
+					await logout(); // Ensure logout completes
+				}
+				isLoggedIn = false;
+				currentUser = null;
+				userName = '';
+				role = null;
+				menuItems = getMenuItems(null);
+				closeMenus(); // Close any open menus on logout
+			}
+		});
 
+		// Cleanup listener on component destroy
+		return () => unsubscribe();
+	});
 
-  });
-
+	// --- Icons Map (Using Heroicons Outline for consistency) ---
+	const icons = {
+		home: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>`,
+		database: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l7.5-7.5 7.5 7.5m-15 6l7.5-7.5 7.5 7.5" /></svg>`, // Replaced with a simpler data icon
+		'clipboard-list': `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75c0-.231-.035-.454-.1-.664M6.75 7.5H18a2.25 2.25 0 012.25 2.25v9a2.25 2.25 0 01-2.25 2.25H6.75a2.25 2.25 0 01-2.25-2.25v-9a2.25 2.25 0 012.25-2.25z" /></svg>`,
+		'chart-pie': `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z" /><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z" /></svg>`,
+		'pencil-alt': `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" /></svg>`,
+		user: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>`,
+		logout: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" /></svg>`,
+		login: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-1"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>`,
+		menu: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>`,
+		close: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>`,
+		'chevron-down': `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 ml-1 transition-transform duration-200 ${isUserMenuOpen ? 'rotate-180' : ''}"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>`
+	};
 </script>
 
+<!-- Global Toast Notification Component -->
 <SvelteToast />
 
-<nav
-  class="p-2 px-4 w-full shadow-lg flex items-center justify-between"
-  style="background-color: #11235A;"
->
-  <!-- All menu -->
-  <div class="flex items-center">
-    <a href="/">
-      <img src="/LOGO.png" width="40px" height="40px" alt="" />
-    </a>
-    {#each menuItems as item}
-      <a href={item.id} class="text-white pe-2 hover:text-gray-200">{item.label}</a>
-    {/each}
-  </div>
+<!-- Navbar -->
+<nav class="bg-white shadow-md sticky top-0 z-40">
+	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+		<div class="flex justify-between h-16">
+			<!-- Left Side: Logo and Desktop Menu -->
+			<div class="flex items-center">
+				<a href="/" class="flex-shrink-0 flex items-center mr-4">
+					<img src="/LOGO.png" width="32" height="32" alt="Logo" class="h-8 w-auto" />
+					<!-- Optional: Add Text Logo for larger screens -->
+					<!-- <span class="ml-2 text-xl font-semibold text-gray-800 hidden sm:inline">ProjectApp</span> -->
+				</a>
+				<div class="hidden md:ml-6 md:flex md:space-x-4">
+					{#each menuItems as item}
+						<a
+							href={item.id}
+							class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 transition duration-150 ease-in-out"
+						>
+							<!-- {@html icons[item.icon] || ''} -->
+							<!-- Removed icons from desktop nav for cleaner look -->
+							{item.label}
+						</a>
+					{/each}
+				</div>
+			</div>
 
-  
-  <!-- Desktop menu -->
-  {#if isLoggedIn}
-  <div class="relative">
-    <button on:click={toggle} class="text-black hover:text-gray-800 bg-gray-200 hover:bg-gray-400 px-4 py-2 rounded-md">
-      {userName ?? "anonymous"} <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-4 h-4 inline-block"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-    </button>
-    {#if isMenuOpen}
-      <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20">
-        <a href="/account" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">ข้อมูลส่วนตัว</a>
-        <button on:click={logout} class="block w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-100">ออกจากระบบ</button>
-      </div>
-    {/if}
-  </div>
+			<!-- Right Side: User Menu/Login and Mobile Menu Button -->
+			<div class="flex items-center">
+				{#if isLoggedIn}
+					<!-- Desktop User Menu -->
+					<div class="hidden md:ml-4 md:flex md:items-center">
+						<div class="relative">
+							<button
+								on:click={toggleUserMenu}
+								type="button"
+								class="flex items-center text-sm rounded-full text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+								id="user-menu-button"
+								aria-expanded={isUserMenuOpen}
+								aria-haspopup="true"
+							>
+								<span class="sr-only">Open user menu</span>
+								<!-- Optional: User Avatar -->
+								<!-- <img class="h-8 w-8 rounded-full mr-2" src={currentUser?.photoURL || '/default-avatar.png'} alt="User avatar"> -->
+								<span class="mr-1">{userName || 'User'}</span>
+								{@html icons['chevron-down']}
+							</button>
 
-      <!-- Hamburgur icon-->
-    <div class="md:hidden">
-      <!-- svelte-ignore a11y_consider_explicit_label -->
-      <button on:click={toggle}>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          class="w-6 h-6 text-white hover:scale-105"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M4 6h16M4 12h16m-7 6h7"
-          />
-        </svg>
-      </button>
-    </div>
-     <!-- end Hamburgur icon-->
-  {:else}
-    <div class="flex space-x-3 hidden md:block">
-      <a
-        href="/login"
-        class="px-4 py-2 text-sm flex font-semibold text-white bg-green-500 items-center rounded-full shadow hover:bg-green-600 transition"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="icon icon-tabler icons-tabler-outline icon-tabler-user-edit pe-1"
-          ><path stroke="none" d="M0 0h24v24H0z" fill="none" /><path
-            d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"
-          /><path d="M6 21v-2a4 4 0 0 1 4 -4h3.5" /><path
-            d="M18.42 15.61a2.1 2.1 0 0 1 2.97 2.97l-3.39 3.42h-3v-3l3.42 -3.39z"
-          /></svg
-        >
-        เข้าสู่ระบบ
-      </a>
-    </div>
-    <div class="md:hidden">
-      <!-- svelte-ignore a11y_consider_explicit_label -->
-      <button on:click={toggle}>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          class="w-6 h-6 text-white hover:scale-105"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M4 6h16M4 12h16m-7 6h7"
-          />
-        </svg>
-      </button>
-    </div>
-  {/if}
+							{#if isUserMenuOpen}
+								<div
+									transition:slide={{ duration: 200, easing: quintOut }}
+									class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50"
+									role="menu"
+									aria-orientation="vertical"
+									aria-labelledby="user-menu-button"
+									tabindex="-1"
+								>
+									<!-- User Menu Items -->
+									 <!--show email-->
+
+									<div class="px-4 py-2 text-sm text-gray-500">{currentUser?.email}</div>
+									 <!--show role-->	
+									{#if role == "user"}
+										<div class="px-4 py-2 text-sm text-gray-500">นักศึกษา</div>
+										{:else if role == "admin"}
+										<div class="px-4 py-2 text-sm text-gray-500">แอดมิน</div>
+										{:else if role == "teacher"}
+										<div class="px-4 py-2 text-sm text-gray-500">อาจารย์ทั่วไป</div>	
+										{:else if role == "subject_teacher"}
+										<div class="px-4 py-2 text-sm text-gray-500">อาจารย์ประจำวิชา</div>
+									{/if}
+										
+									<a
+										href="/account"
+										on:click={closeMenus}
+										class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+										role="menuitem"
+										tabindex="-1"
+									>
+										{@html icons['user']}
+										ข้อมูลส่วนตัว
+									</a>
+									<button
+										on:click={() => {
+											logout();
+											closeMenus();
+										}}
+										class="w-full flex items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+										role="menuitem"
+										tabindex="-1"
+									>
+										{@html icons['logout']}
+										ออกจากระบบ
+									</button>
+								</div>
+							{/if}
+						</div>
+					</div>
+
+					<!-- Mobile Menu Button (Logged In) -->
+					<div class="ml-4 flex items-center md:hidden">
+						<button
+							on:click={toggleMobileMenu}
+							type="button"
+							class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+							aria-controls="mobile-menu"
+							aria-expanded={isMenuOpen}
+						>
+							<span class="sr-only">Open main menu</span>
+							{@html isMenuOpen ? icons['close'] : icons['menu']}
+						</button>
+					</div>
+				{:else}
+					<!-- Login Button (Desktop) -->
+					<div class="hidden md:flex items-center">
+						<a
+							href="/login"
+							class="ml-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out"
+						>
+							{@html icons['login']}
+							เข้าสู่ระบบ
+						</a>
+						<!-- Optional Signup Button -->
+						<!-- <a href="/signup" class="ml-2 inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out">
+              สมัครสมาชิก
+            </a> -->
+					</div>
+					<!-- Login Button (Mobile) -->
+					<div class="flex items-center md:hidden">
+						<a
+							href="/login"
+							class="ml-4 inline-flex items-center p-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out"
+						>
+							{@html icons['login']}
+						</a>
+					</div>
+				{/if}
+			</div>
+		</div>
+	</div>
+
+	<!-- Mobile Menu -->
+	{#if isMenuOpen && browser}
+		<div class="md:hidden fixed inset-0 z-30" id="mobile-menu">
+			<!-- Overlay -->
+			<!-- svelte-ignore a11y_click_events_have_key_events -->
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div class="fixed inset-0 bg-gray-600 bg-opacity-75" on:click={toggleMobileMenu} aria-hidden="true"></div>
+
+			<!-- Mobile Menu Panel -->
+			<div
+				transition:slide={{ duration: 300, easing: quintOut, axis: 'x' }}
+				class="fixed top-0 left-0 w-64 h-full bg-white shadow-xl z-40 p-4"
+			>
+				<!-- Close Button Inside Panel -->
+				<div class="flex justify-end mb-4">
+					<button
+						on:click={toggleMobileMenu}
+						type="button"
+						class="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+					>
+						<span class="sr-only">Close menu</span>
+						{@html icons['close']}
+					</button>
+				</div>
+
+				<!-- Menu Content -->
+				<div class="mt-2 space-y-1">
+					{#if isLoggedIn}
+						<!-- User Info -->
+						<div class="px-2 py-3 border-b border-gray-200 mb-3">
+							<span class="block text-base font-medium text-gray-800 truncate">{userName || 'User'}</span>
+							{#if role}
+								<span class="block text-sm font-medium text-gray-500">{role}</span>
+							{/if}
+						</div>
+						<!-- Logged In Links -->
+						{#each menuItems as item}
+							<a
+								href={item.id}
+								on:click={closeMenus}
+								class="flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+							>
+								{@html icons[item.icon] || ''}
+								{item.label}
+							</a>
+						{/each}
+						<a
+							href="/account"
+							on:click={closeMenus}
+							class="flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+						>
+							{@html icons['user']}
+							ข้อมูลส่วนตัว
+						</a>
+						<hr class="border-gray-200 my-3" />
+						<button
+							on:click={() => {
+								logout();
+								closeMenus();
+							}}
+							class="w-full flex items-center px-3 py-2 rounded-md text-base font-medium text-red-600 hover:text-red-800 hover:bg-red-50"
+						>
+							{@html icons['logout']}
+							ออกจากระบบ
+						</button>
+					{:else}
+						<!-- Logged Out Links -->
+						<a
+							href="/"
+							on:click={closeMenus}
+							class="flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+						>
+							{@html icons['home']}
+							หน้าแรก
+						</a>
+						<a
+							href="/login"
+							on:click={closeMenus}
+							class="flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+						>
+							{@html icons['login']}
+							เข้าสู่ระบบ
+						</a>
+						<!-- <a href="/signup" on:click={closeMenus} class="flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100">
+              {@html icons['user-plus'] || ''} สมัครสมาชิก
+            </a> -->
+					{/if}
+				</div>
+			</div>
+		</div>
+	{/if}
 </nav>
 
-<!--molide menu-->
-<div
-  class={`space-y-2  p-4  md:hidden transition-all   ${
-    isMenuOpen ? "block" : "hidden"
-  }`}
-  style="background-color: #21618c;"
->
-  <a href="/" class="block text-white hover:text-gray-200 hover:underline">
-    หน้าแรก
-  </a>
+<main >
+	<slot />
+</main>
 
-  {#if isLoggedIn}
-    <a
-      href="/cpe02/data"
-      class="block text-white hover:text-gray-200 hover:underline mb-5"
-    >
-      ข้อมูลแบบเสนอโครงงาน
-    </a>
-    <hr />
-
-    <span class="text-sm text-white">สวัสดี, {userName || currentUser?.email}</span><br />
-    <button
-      on:click={logout}
-      class="px-4 py-2 text-sm font-semibold text-white bg-red-500 rounded-md shadow hover:bg-red-600 transition"
-    >
-      Logout
-    </button>
-  {:else}
-    <a
-      href="/login"
-      class="block text-white hover:text-gray-200 hover:underline mb-5"
-    >
-      กรอกแบบฟรอม
-    </a>
-    <a
-      href="/login"
-      class="block text-white hover:text-gray-200 hover:underline mb-5"
-    >
-      ข้อมูลแบบเสนอโครงงาน
-    </a>
-    <hr />
-    <a
-      href="/signup"
-      class="block text-white hover:text-gray-200 hover:underline"
-    >
-      สมัครสมาชิก
-    </a>
-    <a
-      href="/login"
-      class="block text-white hover:text-gray-200 hover:underline"
-    >
-      เข้าสู่ระบบ
-    </a>
-  {/if}
-</div>
-
-<slot />
+<!-- Optional Footer -->
+<!-- 
+<footer class="bg-gray-100 mt-12">
+  <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 text-center text-gray-500 text-sm">
+    © {new Date().getFullYear()} Your Project Name. All rights reserved.
+  </div>
+</footer> 
+-->

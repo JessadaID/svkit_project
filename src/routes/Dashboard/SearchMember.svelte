@@ -17,11 +17,11 @@
   let currentPage = 1;
   let pageSize = 10;
   let searchQuery = "";
-  let selectedRoleFilter = ""; // Renamed to avoid conflict with edited role
+  let selectedRoleFilter = "";
   let lastVisible = null;
   let isLoading = false;
   let noDataFound = false;
-  let savingStates = {}; // To track saving state per row { memberId: boolean }
+  let savingStates = {}; 
 
   const roles = ["user", "teacher", "subject_teacher", "admin"]; // Available roles
 
@@ -64,11 +64,6 @@
         limit(pageSize)
     ];
 
-    // If not resetting and page > 1, we need to fetch previous pages to get the correct startAfter doc
-    // This is a limitation of Firestore cursor pagination when going "backwards" or jumping pages without next/prev logic.
-    // For simplicity here, we'll assume mostly next page navigation or fresh searches.
-    // A more complex implementation would store cursors for each page.
-
     q = query(usersCollection, ...queryConstraints);
 
     try {
@@ -85,10 +80,7 @@
                     lastVisible = snapshot.docs[snapshot.docs.length - 1];
                  }
             } else {
-                 // If no docs returned on a subsequent page, it means we're past the end
-                 // Keep the last known lastVisible to potentially go back? Or clear it?
-                 // Clearing might be safer if data changes frequently.
-                 // lastVisible = null; // Optional: clear if no results on next page
+                
             }
         }
         currentPage = page;
@@ -113,14 +105,8 @@
     }
   }
 
-  // Previous page functionality with Firestore cursors is complex.
-  // A simpler approach for this example is to just reload from the beginning
-  // or implement a more stateful pagination (storing previous cursors).
-  // Let's stick to a simple "reset and go to page 1" for previous for now.
   async function prevPage() {
     if (currentPage > 1 && !isLoading) {
-      // Simplest: Go back to page 1 on "previous" from page 2
-      // Or implement full cursor caching for true back/forth
        await loadMembers(1, searchQuery, selectedRoleFilter, true); // Reset to page 1
     }
   }
@@ -139,16 +125,9 @@
         role: newRole,
       });
       successToast(`อัปเดตบทบาทสำเร็จ`);
-
-      // Optional: Update local data immediately for responsiveness,
-      // but be aware it might differ slightly if other updates happen concurrently.
-      // members = members.map(m => m.id === memberId ? { ...m, role: newRole } : m);
-
     } catch (error) {
       console.error("Error updating role:", error);
       dangerToast(`เกิดข้อผิดพลาดในการอัปเดตบทบาท: ${error.message}`);
-      // Optional: Reload data to ensure consistency after error
-      // await loadMembers(currentPage, searchQuery, selectedRoleFilter);
     } finally {
       savingStates = { ...savingStates, [memberId]: false }; // End saving state for this row
     }
@@ -204,6 +183,7 @@
           <tr>
             <th class="border-b border-gray-200 px-4 py-3 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">อีเมล</th>
             <th class="border-b border-gray-200 px-4 py-3 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">ชื่อผู้ใช้</th>
+            <th class="border-b border-gray-200 px-4 py-3 text-left text-sm font-medium text-gray-600 uppercase tracking-wider" title=" Web Push Notification">รับการแจ้งเตือน</th>
             <th class="border-b border-gray-200 px-4 py-3 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">บทบาท</th>
             <th class="border-b border-gray-200 px-4 py-3 text-center text-sm font-medium text-gray-600 uppercase tracking-wider">จัดการ</th>
           </tr>
@@ -213,6 +193,12 @@
             <tr class="hover:bg-gray-50 transition-colors duration-150">
               <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{member.email}</td>
               <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{member.name || "-"}</td>
+              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                {#if member.fcmToken}
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                {:else}
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                {/if}
               <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
                 <!-- Role Dropdown for Editing -->
                 <select

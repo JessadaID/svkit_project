@@ -11,6 +11,7 @@
   let password = "";
   let user = null;
   let role = null;
+  let name = null;
   let loading = false;
   let countdown = 3; // Initial countdown value in seconds
   let countdownInterval; // Variable to hold the interval ID
@@ -69,7 +70,8 @@
       if (userDocSnap.exists()) {
         const userData = userDocSnap.data();
         role = userData.role; // Update role state
-        setLoginCookies(email, role);
+        name = userData.name; // Update name state
+        setLoginCookies(email, role,name);
 
         // Start the countdown
         countdownInterval = setInterval(() => {
@@ -138,7 +140,7 @@
         <p class="text-sm text-gray-500">
           ยังไม่มีบัญชีหรอ ? <a
             href="/signup"
-            class="text-blue-500 hover:underline font-bold">Sign Up</a
+            class="text-blue-500 hover:underline font-bold">สมัครสมาชิก</a
           >
         </p>
       </div>
@@ -194,7 +196,7 @@
               type="submit"
               class="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition"
             >
-              Sign In
+              เข้าสู่ระบบ
             </button>
           </form>
         {:else}
