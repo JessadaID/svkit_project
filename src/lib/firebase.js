@@ -6,6 +6,7 @@ import { getStorage } from 'firebase/storage';
 import { getMessaging, isSupported } from 'firebase/messaging';
 import { browser } from '$app/environment';
 
+
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_apiKey,
   authDomain: import.meta.env.VITE_authDomain,
@@ -15,6 +16,7 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_appId,
   measurementId: import.meta.env.VITE_measurementId
 };
+
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);

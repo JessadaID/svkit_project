@@ -15,7 +15,6 @@
   let loading = false;
   let countdown = 3; // Initial countdown value in seconds
   let countdownInterval; // Variable to hold the interval ID
-  
   // เพิ่มตัวแปรสำหรับ validation
   let emailError = "";
   let passwordError = "";
@@ -55,7 +54,8 @@
     
     try {
       loading = true;
-      setLoginCookies(email, "user");
+      setLoginCookies(email,"user"); // Set initial cookies with user role as "user"
+      
 
       const userCredential = await signInWithEmailAndPassword(
         auth,
@@ -71,7 +71,7 @@
         const userData = userDocSnap.data();
         role = userData.role; // Update role state
         name = userData.name; // Update name state
-        setLoginCookies(email, role,name);
+        setLoginCookies(email, role, name);
 
         // Start the countdown
         countdownInterval = setInterval(() => {

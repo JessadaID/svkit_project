@@ -8,24 +8,12 @@
   } from "firebase/storage";
   import { storage } from "$lib/firebase"; // ไฟล์ตั้งค่า Firebase
   import { toast } from "@zerodevx/svelte-toast";
-  import Calendar from "../TS_Dashboard/AppointmentDetail/[id]/Calendar.svelte";
 
 
   let savedContent = '<h1>หัวข้อที่บันทึกไว้</h1><p>ข้อความที่บันทึกไว้</p>';
   let editor;
   let content = "";
-  let selectedDates = [];
-  let selectedRange = { start: null, end: null };
-  let savedSelections = [];
-  let selectionMode = 'single'; // เริ่มต้นด้วยโหมดเลือกวันเดียว
-  
-  function handleSave(event) {
-    const { savedSelections, currentSelection } = event.detail;
-    console.log('บันทึกการเลือก:', currentSelection);
-    console.log('การเลือกทั้งหมดที่บันทึก:', savedSelections);
-    
-    // ทำอะไรกับข้อมูลตามต้องการ เช่น บันทึกลงฐานข้อมูล
-  }
+ 
   // อัปโหลดรูปไปยัง Firebase Storage
   async function uploadImage(file) {
     const now = new Date();
@@ -168,15 +156,3 @@
   </button>
 </div>
 
-
-
-<div class="container mx-auto p-4">
-  <h1 class="text-2xl font-bold mb-4">ปฏิทินเลือกวัน</h1>
-  <Calendar 
-    bind:selectionMode
-    bind:selectedDates
-    bind:selectedRange
-    bind:savedSelections
-    on:save={handleSave} 
-  />
-</div>

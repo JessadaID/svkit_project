@@ -11,6 +11,7 @@
 	import { slide } from 'svelte/transition'; // For smoother menu transitions
 	import { quintOut } from 'svelte/easing'; // Easing function for transitions
 
+	
 	let isLoggedIn = false;
 	let currentUser = null;
 	let isMenuOpen = false;
@@ -75,7 +76,7 @@
 					await requestNotificationPermissionAndSaveToken(); // Ensure token is up-to-date
 				} else {
 					// console.log('Notification permission denied.');
-					// dangerToast('การแจ้งเตือนถูกปิดกั้น โปรดเปิดใช้งานในการตั้งค่าเบราว์เซอร์');
+					dangerToast('การแจ้งเตือนถูกปิดกั้น โปรดเปิดใช้งานในการตั้งค่าเบราว์เซอร์');
 				}
 			} catch (error) {
 				console.error('Error requesting notification permission:', error);
@@ -119,8 +120,8 @@
 					menuItems = getMenuItems(null);
 				}
 			} else {
-				// User is logged out or local auth check failed
 				if (user && !checkAuthStatus()) {
+					//console.log(checkAuthStatus())
 					console.log('Firebase user detected, but auth check failed. Logging out.');
 					await logout(); // Ensure logout completes
 				}
@@ -149,7 +150,8 @@
 		login: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-1"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>`,
 		menu: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>`,
 		close: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>`,
-		'chevron-down': `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 ml-1 transition-transform duration-200 ${isUserMenuOpen ? 'rotate-180' : ''}"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>`
+		'chevron-down': `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 ml-1 transition-transform duration-200 ${isUserMenuOpen ? 'rotate-180' : ''}"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>`,
+		document: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 3h6m-6 3h6m-6 3h6m-6 3h6M4.5 4.5v15a2.25 2.25 0 002.25 2.25h11.25A2.25 2.25 0 0020.25 19.5V4.5A2.25 2.25 0 0018 2.25H6a2.25 2.25 0 00-1.5 .75z" /></svg>`,
 	};
 </script>
 
@@ -157,7 +159,7 @@
 <SvelteToast />
 
 <!-- Navbar -->
-<nav class="bg-white shadow-md sticky top-0 z-40">
+<nav class="bg-white shadow-sm sticky top-0 z-40">
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 		<div class="flex justify-between h-16">
 			<!-- Left Side: Logo and Desktop Menu -->
@@ -171,7 +173,7 @@
 					{#each menuItems as item}
 						<a
 							href={item.id}
-							class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 transition duration-150 ease-in-out"
+							class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-slate-600 hover:text-indigo-600 hover:border-slate-300 transition duration-150 ease-in-out"
 						>
 							<!-- {@html icons[item.icon] || ''} -->
 							<!-- Removed icons from desktop nav for cleaner look -->
@@ -190,7 +192,7 @@
 							<button
 								on:click={toggleUserMenu}
 								type="button"
-								class="flex items-center text-sm rounded-full text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+								class="flex items-center text-sm rounded-full text-slate-600 hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
 								id="user-menu-button"
 								aria-expanded={isUserMenuOpen}
 								aria-haspopup="true"
@@ -213,35 +215,47 @@
 								>
 									<!-- User Menu Items -->
 									 <!--show email-->
-
-									<div class="px-4 py-2 text-sm text-gray-500">{currentUser?.email}</div>
+									<div class="px-4 py-2 text-sm text-slate-500 border-b border-slate-200">{currentUser?.email}</div>
 									 <!--show role-->	
 									{#if role == "user"}
-										<div class="px-4 py-2 text-sm text-gray-500">นักศึกษา</div>
+										<div class="px-4 pt-2 pb-1 text-xs text-slate-400 uppercase">นักศึกษา</div>
 										{:else if role == "admin"}
-										<div class="px-4 py-2 text-sm text-gray-500">แอดมิน</div>
+										<div class="px-4 pt-2 pb-1 text-xs text-slate-400 uppercase">แอดมิน</div>
 										{:else if role == "teacher"}
-										<div class="px-4 py-2 text-sm text-gray-500">อาจารย์ทั่วไป</div>	
+										<div class="px-4 pt-2 pb-1 text-xs text-slate-400 uppercase">อาจารย์ทั่วไป</div>	
 										{:else if role == "subject_teacher"}
-										<div class="px-4 py-2 text-sm text-gray-500">อาจารย์ประจำวิชา</div>
+										<div class="px-4 pt-2 pb-1 text-xs text-slate-400 uppercase">อาจารย์ประจำวิชา</div>
 									{/if}
 										
 									<a
 										href="/account"
 										on:click={closeMenus}
-										class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+										class="flex items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
 										role="menuitem"
 										tabindex="-1"
 									>
 										{@html icons['user']}
 										ข้อมูลส่วนตัว
 									</a>
+									{#if role == "user" || role == "admin"}
+											<a
+											href="/my-projects"
+											on:click={closeMenus}
+											class="flex items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
+											role="menuitem"
+											tabindex="-1"
+										>
+											{@html icons['document']}
+											โครงงานของฉัน
+										</a>
+									{/if}
+									
 									<button
 										on:click={() => {
 											logout();
 											closeMenus();
 										}}
-										class="w-full flex items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+										class="w-full flex items-center px-4 py-2 text-sm text-red-600 hover:bg-slate-100"
 										role="menuitem"
 										tabindex="-1"
 									>
@@ -258,7 +272,7 @@
 						<button
 							on:click={toggleMobileMenu}
 							type="button"
-							class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+							class="inline-flex items-center justify-center p-2 rounded-md text-slate-400 hover:text-slate-500 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
 							aria-controls="mobile-menu"
 							aria-expanded={isMenuOpen}
 						>
@@ -271,13 +285,13 @@
 					<div class="hidden md:flex items-center">
 						<a
 							href="/login"
-							class="ml-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out"
+							class="ml-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out"
 						>
 							{@html icons['login']}
 							เข้าสู่ระบบ
 						</a>
 						<!-- Optional Signup Button -->
-						<!-- <a href="/signup" class="ml-2 inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out">
+						<!-- <a href="/signup" class="ml-2 inline-flex items-center px-4 py-2 border border-slate-300 text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
               สมัครสมาชิก
             </a> -->
 					</div>
@@ -285,7 +299,7 @@
 					<div class="flex items-center md:hidden">
 						<a
 							href="/login"
-							class="ml-4 inline-flex items-center p-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out"
+							class="ml-4 inline-flex items-center p-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out"
 						>
 							{@html icons['login']}
 						</a>
@@ -301,7 +315,7 @@
 			<!-- Overlay -->
 			<!-- svelte-ignore a11y_click_events_have_key_events -->
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
-			<div class="fixed inset-0 bg-gray-600 bg-opacity-75" on:click={toggleMobileMenu} aria-hidden="true"></div>
+			<div class="fixed inset-0 bg-slate-600 bg-opacity-75" on:click={toggleMobileMenu} aria-hidden="true"></div>
 
 			<!-- Mobile Menu Panel -->
 			<div
@@ -313,7 +327,7 @@
 					<button
 						on:click={toggleMobileMenu}
 						type="button"
-						class="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+						class="p-2 rounded-md text-slate-400 hover:text-slate-500 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
 					>
 						<span class="sr-only">Close menu</span>
 						{@html icons['close']}
@@ -324,10 +338,10 @@
 				<div class="mt-2 space-y-1">
 					{#if isLoggedIn}
 						<!-- User Info -->
-						<div class="px-2 py-3 border-b border-gray-200 mb-3">
-							<span class="block text-base font-medium text-gray-800 truncate">{userName || 'User'}</span>
+						<div class="px-2 py-3 border-b border-slate-200 mb-3">
+							<span class="block text-base font-medium text-slate-800 truncate">{userName || 'User'}</span>
 							{#if role}
-								<span class="block text-sm font-medium text-gray-500">{role}</span>
+								<span class="block text-sm font-medium text-slate-500 capitalize">{role.replace('_', ' ')}</span>
 							{/if}
 						</div>
 						<!-- Logged In Links -->
@@ -335,7 +349,7 @@
 							<a
 								href={item.id}
 								on:click={closeMenus}
-								class="flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+								class="flex items-center px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-100"
 							>
 								{@html icons[item.icon] || ''}
 								{item.label}
@@ -344,7 +358,7 @@
 						<a
 							href="/account"
 							on:click={closeMenus}
-							class="flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+							class="flex items-center px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-100"
 						>
 							{@html icons['user']}
 							ข้อมูลส่วนตัว
@@ -365,7 +379,7 @@
 						<a
 							href="/"
 							on:click={closeMenus}
-							class="flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+							class="flex items-center px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-100"
 						>
 							{@html icons['home']}
 							หน้าแรก
@@ -373,12 +387,12 @@
 						<a
 							href="/login"
 							on:click={closeMenus}
-							class="flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+							class="flex items-center px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-100"
 						>
 							{@html icons['login']}
 							เข้าสู่ระบบ
 						</a>
-						<!-- <a href="/signup" on:click={closeMenus} class="flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100">
+						<!-- <a href="/signup" on:click={closeMenus} class="flex items-center px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-100">
               {@html icons['user-plus'] || ''} สมัครสมาชิก
             </a> -->
 					{/if}
@@ -392,11 +406,3 @@
 	<slot />
 </main>
 
-<!-- Optional Footer -->
-<!-- 
-<footer class="bg-gray-100 mt-12">
-  <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 text-center text-gray-500 text-sm">
-    © {new Date().getFullYear()} Your Project Name. All rights reserved.
-  </div>
-</footer> 
--->

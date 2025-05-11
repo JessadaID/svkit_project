@@ -1,92 +1,123 @@
 // src/routes/api/project-data/+server.js
+import {  json } from "@sveltejs/kit";
 import { db } from "$lib/firebase";
-// Import query and where from firestore
 import { collection, getDocs, query, where } from "firebase/firestore";
 
-// GET function remains the same (fetches all data)
-export async function GET() {
+// ฟังก์ชันสำหรับ format ข้อมูลให้อยู่ในรูปแบบที่ต้องการ (ลดการทำซ้ำ)
+function formatDocData(doc) {
+  const docData = doc.data();
+  return {
+    id: doc.id,
+    project_name_th: docData?.project_name_th || "",
+    project_name_en: docData?.project_name_en || "",
+    status: docData?.status || "",
+    members: Array.isArray(docData?.members) ? docData.members : [],
+    Tasks: docData?.Tasks || {},
+    term: docData?.term || "",
+    adviser: Array.isArray(docData?.adviser) ? docData.adviser : [],
+    directors: docData?.directors || {},
+  };
+}
+
+// GET: ดึงข้อมูลโปรเจคทั้งหมด
+export async function GET({ url }) {
   try {
-    const dataCollection = collection(db, "project-approve");
-    const snapshot = await getDocs(dataCollection);
+    // เพิ่มการกรองด้วย query parameters (เช่น ?term=2023)
+    const term = url.searchParams.get("term");
+    const status = url.searchParams.get("status");
+    const email = url.searchParams.get("email");
 
-    const data = snapshot.docs.map(doc => {
-      const docData = doc.data();
-      return {
-        id: doc.id,
-        project_name_th: docData?.project_name_th || '',
-        project_name_en: docData?.project_name_en || '',
-        status: docData?.status || '',
-        members: Array.isArray(docData?.members) ? docData.members : [],
-        Tasks: docData?.Tasks || {},
-        term: docData?.term || '',
-        adviser: Array.isArray(docData?.adviser) ? docData.adviser : [],
-        directors: docData?.directors || {},
-      };
-    });
+    const projectCollection = collection(db, "project-approve");
+    let projectQuery = projectCollection;
 
-    return new Response(JSON.stringify({ data }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    // สร้าง query ตามเงื่อนไขที่ส่งมา
+    if (term) {
+      projectQuery = query(projectQuery, where("term", "==", term));
+    }
+
+    if (status) {
+      projectQuery = query(projectQuery, where("status", "==", status));
+    }
+    if (email) {
+      projectQuery = query(projectQuery, where("email", "==", email));
+    }
+
+    const snapshot = await getDocs(projectQuery);
+
+    if (snapshot.empty) {
+      return json({ data: [] }, { status: 200 });
+    }
+
+    const data = snapshot.docs.map(formatDocData);
+    //console.log("data", data);
+
+    return json({ data }, { status: 200 });
   } catch (error) {
-    console.error('Error fetching data:', error);
-    return new Response(JSON.stringify({ error: 'Failed to fetch data' }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" }, // Added headers for consistency
-    });
+    console.error("Error fetching projects:", error);
+    return json({ error: "Failed to fetch project data" }, { status: 500 });
   }
 }
 
-export async function POST({ request }){
+// POST: ดึงข้อมูลโปรเจคตามเงื่อนไขที่ส่งมาใน request body
+export async function POST({ request }) {
   try {
     const body = await request.json();
-    const termToFilter = body.term; // Assuming the client sends { "term": "some_value" }
 
-    if (termToFilter === undefined || termToFilter === null) {
-        return new Response(JSON.stringify({ error: 'Missing "term" field in request body' }), {
-            status: 400, // Bad Request
-            headers: { "Content-Type": "application/json" },
-        });
+    // ตรวจสอบว่ามีข้อมูลใน request body หรือไม่
+    if (!body || Object.keys(body).length === 0) {
+      return json(
+        { error: "Request body is empty. Expected filter criteria." },
+        { status: 400 }
+      );
     }
 
-    const dataCollection = collection(db, "project-approve");
-    const q = query(dataCollection, where("term", "==", termToFilter));
+    // สร้าง query object เริ่มต้น
+    const projectCollection = collection(db, "project-approve");
+    let projectQuery = projectCollection;
 
-    // 5. Execute the query
-    const snapshot = await getDocs(q);
+    // เพิ่มเงื่อนไขการค้นหาตามข้อมูลที่ส่งมา
+    const validFilters = [
+      "term",
+      "status",
+      "project_name_th",
+      "project_name_en",
+    ];
+    let filtersApplied = false;
 
-    // 6. Map the results (same mapping logic as GET)
-    const data = snapshot.docs.map(doc => {
-      const docData = doc.data();
-      return {
-        id: doc.id,
-        project_name_th: docData?.project_name_th || '',
-        project_name_en: docData?.project_name_en || '',
-        status: docData?.status || '',
-        members: Array.isArray(docData?.members) ? docData.members : [],
-        Tasks: docData?.Tasks || {},
-        term: docData?.term || '', // This will match termToFilter for all results
-        adviser: Array.isArray(docData?.adviser) ? docData.adviser : [],
-        directors: docData?.directors || {},
-      };
+    validFilters.forEach((filter) => {
+      if (
+        body[filter] !== undefined &&
+        body[filter] !== null &&
+        body[filter] !== ""
+      ) {
+        projectQuery = query(projectQuery, where(filter, "==", body[filter]));
+        filtersApplied = true;
+      }
     });
 
-    return new Response(JSON.stringify({ data }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    // ค้นหาข้อมูลตามเงื่อนไข
+    const snapshot = await getDocs(projectQuery);
 
+    if (snapshot.empty) {
+      return json({ data: [] }, { status: 200 });
+    }
+
+    const data = snapshot.docs.map(formatDocData);
+
+    return json({ data }, { status: 200 });
   } catch (error) {
-    console.error('Error processing POST request:', error);
+    console.error("Error processing POST request:", error);
+
     if (error instanceof SyntaxError) {
-        return new Response(JSON.stringify({ error: 'Invalid JSON format in request body' }), {
-            status: 400, // Bad Request
-            headers: { "Content-Type": "application/json" },
-        });
+      return json(
+        { error: "Invalid JSON format in request body" },
+        { status: 400 }
+      );
     }
-    return new Response(JSON.stringify({ error: 'Failed to process request' }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+
+    return json(
+      { error: "Failed to process request", details: error.message },
+      { status: 500 }
+    );
   }
 }

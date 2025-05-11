@@ -1,9 +1,7 @@
 import { setCookie, deleteCookie,getCookie } from 'cookies-next';
-import { getAuth, onAuthStateChanged ,signOut} from 'firebase/auth';
+import { getAuth, signOut} from 'firebase/auth';
 import { auth } from "$lib/firebase"; // นำเข้า Firebase Auth ที่ตั้งค่าไว้
 import { goto } from '$app/navigation';
-
-let isLoggedIn = false;
 
 /**
  * ตั้งค่า Cookies หลังจากล็อกอินสำเร็จ
@@ -14,7 +12,7 @@ let isLoggedIn = false;
 export function setLoginCookies(email, role,name) {
     setCookie('email', email, {
         path: '/',
-        //maxAge: 60 * 60 * 3, // อายุ Cookies 3 ชม.
+        //httpOnly: true,
         maxAge: 60 * 60 * 3, // อายุ Cookies 3 ชม.
         secure: true,
         sameSite: 'strict',
@@ -22,19 +20,22 @@ export function setLoginCookies(email, role,name) {
 
     setCookie('role', role, {
         path: '/',
+        //httpOnly: true,
+        maxAge: 60 * 60 * 3,
+        secure: true,
+        sameSite: 'strict',
+    });
+      setCookie('name', name, {
+        path: '/',
+        //httpOnly: true,
         //maxAge: 60 * 60 * 3,
         maxAge: 60 * 60 * 3,
         secure: true,
         sameSite: 'strict',
     });
-    //console.log('Cookies have been set:', { email, role });
-    setCookie('name', name, {
-      path: '/',
-      //maxAge: 60 * 60 * 3,
-      maxAge: 60 * 60 * 3,
-      secure: true,
-      sameSite: 'strict',
-  });
+
+    //console.log('Cookies have been set:', { email, role , name });
+
 }
 
 /**
@@ -61,12 +62,12 @@ export async function isUserLoggedIn() {
 export function checkAuthStatus() {
     const email = getCookie("email");
     const role = getCookie("role");
-    const name = getCookie("name");
 
     //console.log("Checking cookies:", { email, role });
 
-    if (!email || !role || !name) {
+    if (!email || !role) {
       console.warn("Missing cookies. Logging out.");
+      //console.log(email, role);
       logout();
       return false;
     }
@@ -76,7 +77,6 @@ export function checkAuthStatus() {
   export async function logout() {
     try {
       await signOut(auth);
-      isLoggedIn = false;
       // ลบ cookies
       clearLoginCookies();
       goto("/login");

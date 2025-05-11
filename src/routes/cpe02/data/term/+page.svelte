@@ -4,28 +4,52 @@
 	import { goto } from '$app/navigation';
 	import { checkAuthStatus } from '$lib/auth';
 	import { warningToast } from '$lib/customtoast';
-	import { getCookie } from 'cookies-next';
+	import { getCookie } from 'cookies-next'; // Assuming this works correctly in SvelteKit context
+	import { verifyJWT , createJWT } from '$lib/jwt'; // Import verifyJWT
 
-	const termId = $page.params.id; // This is the 'term'
+	let termId = null; // Initialize termId to null
 	let allProjects = null; // Store the original fetched data
 	let filteredProjects = []; // Store the data to be displayed (after filtering)
 	let searchTerm = ''; // Holds the value from the search input
-	let isLoading = true; // Flag for loading state
 	let error = null; // To store any fetch errors
 	let userEmail = null; // Store user's email from cookie <-- Renamed for clarity
 	let filterByMyProjects = false; // State for the new checkbox <-- Changed variable name
-  let role = null; // Store user's role from cookie
+    let role = null; // Store user's role from cookie
+	let isLoading = false; // Loading state
+  
 	onMount(async () => {
+		// 1. Extract and verify the token from the URL
+		const token = $page.url.searchParams.get('token');
+		if (!token) {
+			console.error('No token found in URL');
+			error = 'ไม่พบข้อมูลภาคการศึกษา';
+			goto('/cpe02'); // Redirect to the main page
+			return; // Stop further execution
+		}
+
 		try {
+			const payload = await verifyJWT(token);
+			termId = payload.term; // Extract term from payload
+			//console.log('Decoded payload:', payload);
+		} catch (err) {
+			console.error('Invalid or expired token:', err);
+			error = 'ข้อมูลภาคการศึกษาไม่ถูกต้อง หรือหมดอายุ';
+			goto('/cpe02'); // Redirect to the main page
+			return; // Stop further execution
+		}
+
+		try {
+			// 2. Get user info from cookies (after successful token verification)
 			userEmail = getCookie('email'); // Get user email
-      role = getCookie('role'); // Get user role
-			//console.log("Email from cookies:", userEmail);
-		} catch (e) {
-			console.warn("Could not read 'email' cookie on mount:", e);
+			role = getCookie('role'); // Get user role
+		} catch (err) {
+			console.warn("Could not read 'email' or 'role' cookie on mount:", err);
 		}
 
 		isLoading = true;
 		error = null; // Reset error on mount
+
+
 		try {
 			const res = await fetch(`/api/project-data`, {
 				method: 'POST',
@@ -45,7 +69,7 @@
 					adviser: Array.isArray(proj.adviser) ? proj.adviser : []
 				}));
 				// Initially, display all fetched projects (will be filtered by reactive block)
-				// filteredProjects = allProjects; // Let the reactive block handle initial filtering
+				filteredProjects = allProjects; // Let the reactive block handle initial filtering
 			} else {
 				console.error('Failed to fetch data:', res.status, await res.text());
 				error = `ไม่สามารถโหลดข้อมูลได้ (สถานะ: ${res.status})`;
@@ -116,23 +140,28 @@
 		filteredProjects = [];
 	}
 
-	function viewProjectDetails(projectId) {
+	async function viewProjectDetails(projectId) {
 		if (checkAuthStatus()) {
 			if (projectId) {
-				goto(`/cpe02/data/${termId}/${projectId}`);
+				const payload = { projectId };
+				const token = await createJWT(payload);
+				goto(`/cpe02/data/term/project-detail?token=${token}`);
 			} else {
 				console.error('Cannot navigate: Project ID is missing');
+				
 			}
 		} else {
 			console.log('User is not authenticated, redirecting to login.');
 			warningToast('กรุณาเข้าสู่ระบบก่อนดูรายละเอียดโครงงาน');
+			
 		}
 	}
+
 </script>
 
 <div class="container mx-auto px-4 py-8">
 	<h1 class="text-2xl md:text-3xl font-bold text-center text-gray-800 mb-6">
-		โครงงานสำหรับภาคเรียน: <span class="text-indigo-600">{termId}</span>
+		โครงงานสำหรับภาคเรียน: <span class="text-indigo-600">{termId || 'ไม่ระบุ'}</span>
 	</h1>
 
 	<!-- Search Input and Checkbox Container -->
@@ -289,15 +318,13 @@
 										{#if project.adviser && project.adviser.length > 0}
 											<ul class="list-disc list-inside text-sm text-gray-700 space-y-1">
 												{#each project.adviser as adv}
-													{#if typeof adv === 'object' && adv.name}
+													{#if adv.name != null}
 														<li>
 															{adv.name}
 															<!--{#if adv.email}<span class="text-gray-500 text-xs ml-1">({adv.email})</span>{/if}-->
 														</li>
-													{:else if typeof adv === 'string'}
-														<li>{adv}</li>
 													{:else}
-														<li class="text-gray-400 italic">ข้อมูลไม่ถูกต้อง</li>
+														<li>{adv}</li>
 													{/if}
 												{/each}
 											</ul>

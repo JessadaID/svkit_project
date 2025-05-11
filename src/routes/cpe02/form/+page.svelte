@@ -13,7 +13,9 @@
   import Topic4_6 from "./topic4_6.svelte";
   import Topic7_9 from "./topic7_9.svelte";
   import Topic10_12 from "./topic10_12.svelte";
-  import { warningToast , successToast} from "$lib/customtoast";
+  import { warningToast , successToast, dangerToast} from "$lib/customtoast";
+  import { verifyJWT , createJWT } from "$lib/jwt.ts"; // Import your JWT verification function
+  import { page } from "$app/stores";
 
   export let data; // รับค่าจาก `+page.js`
 
@@ -85,6 +87,8 @@
     { title: "ผลที่คาดว่าจะได้รับและเอกสารอ้างอิง", icon: "M9 17v-2m3 2v-4m3 4v-6m-9 4h12M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z" },
   ];
 
+  
+
   function navigateStep(direction) {
     if (direction === "next" && currentStep < steps.length - 1) {
       if (validateStep()) {
@@ -116,10 +120,11 @@
           warningToast("ขั้นตอนที่ 1: กรุณากรอกชื่อสมาชิกโครงงานให้ครบถ้วน (ห้ามเว้นว่าง)");
           return false;
         }
+        /*
         if(adviser.length === 0){
           warningToast("ขั้นตอนที่ 1: กรุณาเลือกอาจารย์ที่ปรึกษาโครงงานอย่างน้อย 1 ท่าน");
           return false;
-        }
+        }*/
         break;
       case 1:
         if (!project_problem.trim()) {
@@ -175,15 +180,47 @@
     return true;
   }
 
+
   onMount(async () => {
     const isUserLoggedIn = await checkAuthStatus();
+    const token = $page.url.searchParams.get('token');
+
     if (isUserLoggedIn) {
       email = getCookie("email");
     } else {
-      console.log("User not logged in. Redirecting to login...");
-      goto("/login?redirect=/cpe02/form/" + term); // Redirect back after login
+      warningToast("Session หมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
+      goto("/login"); // Redirect back after login
     }
+
+	if (!token) {
+		console.error('No token found in URL');
+        goto("/cpe02"); // Redirect to login if token is missing
+		dangerToast('ไม่พบข้อมูลภาคการศึกษา');
+		return; // Stop further execution
+	}
+	try {
+		const payload = await verifyJWT(token);
+		term = payload.term; // Extract term from payload
+		//console.log('Decoded payload:', payload);
+	} catch (err) {
+		console.error('Invalid or expired token:', err);
+        goto("/cpe02"); // Redirect to login if token is invalid
+        dangerToast('ข้อมูลภาคการศึกษาไม่ถูกต้อง');
+		return; // Stop further execution
+	}
   });
+
+  async function navigateWithToken(projectId) {
+		try {
+			const payload = { projectId };
+			const token = await createJWT(payload);
+			//console.log('Token:', token);
+			goto(`/cpe02/data/term/project-detail?token=${token}`);
+		} catch (err) {
+			console.error('Error creating JWT:', err);
+			// Handle error appropriately, e.g., display an error message to the user
+		}
+	}
 
   function handleTab(event, bindVariableSetter) {
     // Keep your existing handleTab logic
@@ -239,7 +276,8 @@
         // Use a more modern notification system if available (e.g., svelte-toast)
         successToast(`เพิ่มข้อมูลโครงงาน "${project_name_th}" สำเร็จ!`);
         // Consider redirecting to the newly created project page or the list view
-        goto(`/cpe02/data/${term}/${docRef.id}`); // Redirect to the new project detail page
+        const projectId = docRef.id; // Get the document ID
+        navigateWithToken(projectId); // Redirect to the term page with token
 
       } catch (error) {
         console.error("Error adding document: ", error);

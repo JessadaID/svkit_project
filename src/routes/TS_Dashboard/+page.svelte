@@ -6,7 +6,7 @@
     export let data;
     const { menuItems } = data;
   
-    $: console.log("Menu Items:", menuItems);
+    //$: console.log("Menu Items:", menuItems);
     $: visibleMenuItems = menuItems.filter(item => item.id !== '');
   
     function handleCardClick(itemId) {

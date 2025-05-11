@@ -4,11 +4,11 @@
   import { goto } from "$app/navigation";
   import { checkAuthStatus } from "$lib/auth";
   import { warningToast } from "$lib/customtoast.js";
+  import { createJWT } from "$lib/jwt.ts";
   import { fade } from 'svelte/transition'; // Import fade transition
 
   $: latestTerm = data.latestTerm;
  
-
   function handleNavigation(url) {
     if (checkAuthStatus()) {
       goto(url);
@@ -17,6 +17,18 @@
       goto(`/login?redirect=${encodeURIComponent(url)}`);
     }
   }
+
+  async function navigateWithToken(term) {
+		try {
+			const payload = { term };
+			const token = await createJWT(payload);
+			//console.log('Token:', token);
+			goto(`/cpe02/form?token=${token}`);
+		} catch (err) {
+			console.error('Error creating JWT:', err);
+			// Handle error appropriately, e.g., display an error message to the user
+		}
+	}
 </script>
 
 
@@ -78,7 +90,7 @@
 
         {#if latestTerm}
           <button
-            on:click={() => handleNavigation(`/cpe02/form/${encodeURIComponent(latestTerm.term)}`)}
+            on:click={() => navigateWithToken(latestTerm.term)}
             class="w-full mt-auto bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
             กรอกฟอร์ม เทอม: {latestTerm.term}
