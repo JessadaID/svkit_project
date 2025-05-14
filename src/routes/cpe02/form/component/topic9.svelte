@@ -2,7 +2,6 @@
     export let tableTitle;
     export let monthLabels;
     export let activities;
-    export let handleTab;
 
     // ข้อมูลส่วนหัวที่แก้ไขได้
   
@@ -73,7 +72,7 @@
     <label class="block text-sm font-medium text-gray-700"
       >9. วิธีการดำเนินงาน <span class="text-red-500 font-bold">*</span>
     </label>
-    <p class="mt-1 text-sm text-gray-600">ตารางแผนและระยะเวลาดำเนินงาน (Gantt Chart)</p>
+    <p class="mt-1 text-sm text-gray-600">ตารางแผนและระยะเวลาดำเนินงาน (Gantt Chart) <b>(สามารถคลิกเพื่อแก้ไขได้ ทุกส่วน)</b></p>
     
     
 <div class="mt-4">

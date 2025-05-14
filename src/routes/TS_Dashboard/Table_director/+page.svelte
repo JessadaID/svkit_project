@@ -5,81 +5,121 @@
 
     let projects = [];
     let filteredProjects = [];
-    let loading = true;
+    let loading = true; // Start with loading true
     let error = null;
     let maxDirectors = 0; // Store the maximum number of directors
 
+    // Filter variables
     let searchQuery = "";
-    let selectedTerm = "all";
-    let availableTerms = [];
+    let fixedTerm = null; // Will be set by the open form's term
 
     onMount(async () => {
         try {
-            const projectsCollection = collection(db, "project-approve");
-            const projectSnapshot = await getDocs(projectsCollection);
+            loading = true;
 
-            projects = projectSnapshot.docs.map((doc) => {
-                const data = doc.data();
-                // ปรับจาก director เป็น directors (object)
-                const directors = data.directors || {};
-                const directorNames = Object.keys(directors);
-                const directorCount = directorNames.length;
+            // 1. Fetch form data to get the fixed term
+            const formRes = await fetch(`../../api/form-data`);
+            if (!formRes.ok) {
+                const formDataError = await formRes.json();
+                throw new Error(formDataError.error || "ไม่สามารถโหลดข้อมูลฟอร์มสำหรับภาคการศึกษาได้");
+            }
+            const formDataResponse = await formRes.json();
+            const openForm = formDataResponse.data.find(form => form.isOpen === true);
 
-                if (directorCount > maxDirectors) {
-                    maxDirectors = directorCount; // Update maxDirectors
+            if (openForm && openForm.term) {
+                fixedTerm = openForm.term;
+
+                // 2. Fetch all projects from Firestore
+                const projectsCollection = collection(db, "project-approve");
+                const projectSnapshot = await getDocs(projectsCollection);
+                let allFetchedProjects = projectSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+                // 3. Filter these projects by the fixedTerm
+                projects = allFetchedProjects.filter(p => p.term === fixedTerm);
+
+                // 4. Process the term-specific projects for director info
+                if (projects.length > 0) {
+                    projects = projects.map((projectData) => {
+                        // Handle case where directors may be undefined or not an array
+                        const directorsArray = Array.isArray(projectData.directors) ? projectData.directors : [];
+                        
+                        // Safely extract director names with fallback values
+                        const extractedDirectorNames = directorsArray.map(
+                            (d) => {
+                                // Handle potential null/undefined directors
+                                if (!d) return "ไม่ระบุ";
+                                return d.name || d.email || "ไม่ระบุ";
+                            }
+                        );
+                        const directorCount = directorsArray.length;
+
+                        if (directorCount > maxDirectors) {
+                            maxDirectors = directorCount;
+                        }
+
+                        return {
+                            ...projectData,
+                            directorNames: extractedDirectorNames,
+                            directorCount: directorCount,
+                        };
+                    });
+                } else {
+                    maxDirectors = 0; // No projects for this term
                 }
+            } else {
+                error = "ไม่พบภาคการศึกษาที่เปิดให้แสดงข้อมูลโครงงาน";
+                projects = [];
+                maxDirectors = 0;
+            }
 
-                return {
-                    id: doc.id,
-                    ...data,
-                    directorNames: directorNames, // เก็บรายชื่อกรรมการแยกไว้เพื่อการแสดงผล
-                    directorCount: directorCount,
-                };
-            });
-
-            const terms = projects.map((project) => project.term || "ไม่ระบุ");
-            availableTerms = ["all", ...Array.from(new Set(terms)).sort()];
-
+            // Apply initial filters
             applyFilters();
-            loading = false;
         } catch (err) {
             console.error("Error fetching projects:", err);
             error = "เกิดข้อผิดพลาดในการโหลดข้อมูลโครงงาน กรุณาลองใหม่อีกครั้ง";
-            loading = false;
+        } finally {
+            loading = false; // Always set loading to false when done
         }
     });
 
     function applyFilters() {
         filteredProjects = projects.filter((project) => {
-            if (selectedTerm !== "all" && project.term !== selectedTerm) {
-                return false;
+            // If search query is empty, include all projects
+            if (!searchQuery || searchQuery.trim() === "") {
+                return true;
             }
+            
+            const query = searchQuery.toLowerCase().trim();
 
-            if (searchQuery.trim() !== "") {
-                const query = searchQuery.toLowerCase().trim();
+            // Search in project name (with null check)
+            const nameMatch = project.project_name_th && 
+                            project.project_name_th.toLowerCase().includes(query);
+            
+            // Search in members (with array check)
+            const membersMatch = Array.isArray(project.members) && 
+                               project.members.some((member) => 
+                                   member && member.toLowerCase().includes(query)
+                               );
+            
+            // Search in advisers (with array check)
+            const adviserMatch = Array.isArray(project.adviser) && 
+                               project.adviser.some(adviser => {
+                                   if (!adviser) return false;
+                                   return (adviser.name && adviser.name.toLowerCase().includes(query)) ||
+                                          (adviser.email && adviser.email.toLowerCase().includes(query));
+                               });
+            
+            // Search in directors
+            const directorMatch = Array.isArray(project.directorNames) && 
+                                project.directorNames.some((director) => 
+                                    director && director.toLowerCase().includes(query)
+                                );
 
-                const nameMatch = project.project_name_th && 
-                                 project.project_name_th.toLowerCase().includes(query);
-                const membersMatch = project.members && 
-                                   project.members.some((member) => member.toLowerCase().includes(query));
-                const adviserMatch = project.adviser && 
-                                   project.adviser.some((member) => member.toLowerCase().includes(query));
-                // เพิ่มการค้นหาในรายชื่อกรรมการด้วย
-                const directorMatch = project.directorNames && 
-                                    project.directorNames.some((director) => director.toLowerCase().includes(query));
-
-                return nameMatch || membersMatch || adviserMatch || directorMatch;
-            }
-
-            return true;
+            return nameMatch || membersMatch || adviserMatch || directorMatch;
         });
     }
 
     function handleSearch() {
-        applyFilters();
-    }
-
-    function handleTermChange() {
         applyFilters();
     }
 </script>
@@ -100,16 +140,21 @@
             <div class="mb-6 space-y-4">
                 <div class="flex flex-col md:flex-row gap-4">
                     <div class="w-full md:w-1/3">
-                        <label for="term-select" class="block text-sm font-medium text-gray-700 mb-1">ภาคการศึกษา</label>
-                        <select id="term-select" bind:value={selectedTerm} on:change={handleTermChange} class="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm py-2 px-3 border">
-                            {#each availableTerms as term}
-                                <option value={term}>{term === "all" ? "ทุกภาคการศึกษา" : term}</option>
-                            {/each}
-                        </select>
+                        <label for="term-display" class="block text-sm font-medium text-gray-700 mb-1">ภาคการศึกษา</label>
+                        <div
+                            id="term-display"
+                            class="block w-full border-gray-300 rounded-md shadow-sm sm:text-sm py-2 px-3 border bg-gray-100 cursor-not-allowed"
+                        >
+                            {#if fixedTerm}
+                                {fixedTerm}
+                            {:else}
+                                <span class="text-gray-500">ไม่มีภาคการศึกษาที่ระบุ</span>
+                            {/if}
+                        </div>
                     </div>
 
                     <div class="w-full md:w-2/3">
-                        <label for="search-input" class="block text-sm font-medium text-gray-700 mb-1">ค้นหา (ชื่อโครงงาน, สมาชิก, อาจารย์ที่ปรึกษา)</label>
+                        <label for="search-input" class="block text-sm font-medium text-gray-700 mb-1">ค้นหา (ชื่อโครงงาน, สมาชิก, อาจารย์ที่ปรึกษา, กรรมการ)</label>
                         <div class="relative">
                             <input id="search-input" type="text" bind:value={searchQuery} on:input={handleSearch} placeholder="พิมพ์คำค้นหา..." class="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm py-2 pl-3 pr-10 border" />
                             <div class="absolute inset-y-0 right-0 flex items-center pr-3">
@@ -147,9 +192,9 @@
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 {#each filteredProjects as project (project.id)}
-                                    <tr>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="text-sm text-gray-900">{project.project_name_th}</div>
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-6 py-4">
+                                            <div class="text-sm text-gray-900">{project.project_name_th || 'ไม่ระบุชื่อโครงงาน'}</div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <div class="text-sm text-gray-900">{project.directorCount}</div>
@@ -157,7 +202,11 @@
                                         {#each Array(maxDirectors) as _, index}
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 <div class="text-sm text-gray-900">
-                                                    {project.directorNames && project.directorNames[index] ? project.directorNames[index] : ''}
+                                                    {#if project.directorNames && index < project.directorNames.length}
+                                                        {project.directorNames[index]}
+                                                    {:else}
+                                                        <!-- Empty cell for missing directors -->
+                                                    {/if}
                                                 </div>
                                             </td>
                                         {/each}

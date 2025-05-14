@@ -93,13 +93,13 @@
         applyFilters();
     }
 
-    function goToAppointmentDetails(projectId) {
-        goto(`/TS_Dashboard/Appointment/${projectId}`);
+    function goToGradingPage(projectId) {
+        goto(`/TS_Dashboard/Grade/${projectId}`); //  ปรับ route ไปยังหน้าให้คะแนนของแต่ละโครงงาน
     }
 </script>
 
 <div class="max-w-4xl mx-auto">
-    <h1 class="text-2xl font-bold mb-6">นัดหมายการสอบ</h1>
+    <h1 class="text-2xl font-bold mb-6">ให้คะแนนโครงงาน</h1>
 
     {#if loading}
         <div class="flex justify-center my-12">
@@ -149,7 +149,7 @@
                                     ชื่อโครงงาน
                                 </th>
                                 <th scope="col" class="relative px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    นัดหมาย
+                                    การให้คะแนน
                                 </th>
                             </tr>
                         </thead>
@@ -161,10 +161,10 @@
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <button
-                                            on:click={() => goToAppointmentDetails(project.id)}
+                                            on:click={() => goToGradingPage(project.id)}
                                             class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
                                         >
-                                            นัดหมาย
+                                            ให้คะแนน
                                         </button>
                                     </td>
                                 </tr>

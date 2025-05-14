@@ -18,7 +18,8 @@
   import { verifyJWT, createJWT } from "$lib/jwt.ts";
   import { handleTab } from "./controller";
   import AdviserSelection from "./AdviserSelection.svelte";
-
+  import Topic9 from "../../../../form/component/topic9.svelte";
+  import Topic11 from "../../../../form/component/topic11.svelte";
   // --------- State Variables ---------
   let projectId = null;
   let project = null;
@@ -87,7 +88,7 @@
       
       if (projectDoc.exists()) {
         project = projectDoc.data();
-        
+        //console.log("Project data loaded:", project);
         // Ensure project.adviser is an array
         if (!project.adviser || !Array.isArray(project.adviser)) {
           project.adviser = [];
@@ -362,7 +363,6 @@
         <!-- Form Header -->
         <div class="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white">
           <h1 class="text-2xl font-bold">แก้ไขข้อมูลโครงงาน</h1>
-          <p class="text-sm text-indigo-100 mt-1">รหัสโครงงาน: {projectId}</p>
         </div>
 
         <!-- Form Body -->
@@ -533,6 +533,44 @@
                 placeholder="ระบุขอบเขตของโครงงาน..."
               ></textarea>
             </div>
+            <div>
+              <Topic9
+                bind:tableTitle={project.Operation_Schedule.tableTitle}
+                bind:monthLabels={project.Operation_Schedule.monthLabels}
+                bind:activities={project.Operation_Schedule.activities}
+                />
+            </div>
+            <div>
+              <label for="benefit" class="block text-sm font-medium text-gray-700 mb-1">10. ประโยชน์ที่คาดว่าจะได้รับ<span class="text-red-500">*</span></label>
+              <textarea
+                id="benefit"
+                rows="8"
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                required
+                bind:value={project.benefits}
+                on:keydown={(event) => handleTab(event, (value) => (project.benefits = value))}
+                placeholder="ระบุประโยชน์ที่คาดว่าจะได้รับของโครงงาน..."
+              ></textarea>
+            </div>
+
+            <div>
+              <Topic11
+                bind:budgetItems={project.budgetItems}
+                />
+            </div>
+            
+            <div>
+              <label for="research_data" class="block text-sm font-medium text-gray-700 mb-1">12. เอกสารอ้างอิง<span class="text-red-500">*</span></label>
+              <textarea
+                id="research_data"
+                rows="8"
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                required
+                bind:value={project.research_data}
+                on:keydown={(event) => handleTab(event, (value) => (project.research_data = value))}
+                placeholder="ระบุประโยชน์ที่คาดว่าจะได้รับของโครงงาน..."
+              ></textarea>
+            </div>
           </fieldset>
 
           <!-- Section 3: Images -->
@@ -626,8 +664,7 @@
             {/if}
           </fieldset>
 
-        </div>
-
+          
         <!-- Form Footer / Actions -->
         <div class="px-6 md:px-8 py-4 bg-gray-50 border-t border-gray-200 flex justify-end items-center space-x-3">
            <button

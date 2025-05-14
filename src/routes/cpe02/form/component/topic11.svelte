@@ -17,9 +17,14 @@
       ];
       //console.log('addRow called, new budgetItems:', JSON.stringify(budgetItems));
     }
+
+    function removeItem(itemId) {
+      budgetItems = budgetItems.filter(item => item.id !== itemId);
+      //console.log('removeItem called, item ${itemId} removed, new budgetItems:', JSON.stringify(budgetItems));
+    }
   
     async function startEditing(itemId, field, currentValue) {
-      console.log(`startEditing called for item ${itemId}, field ${field}, value: ${currentValue}`);
+      //console.log(`startEditing called for item ${itemId}, field ${field}, value: ${currentValue}`);
       editingCell = { itemId, field };
       editValue = currentValue;
       // Wait for the input to render, then focus it
@@ -37,7 +42,7 @@
         budgetItems[index][field] = updatedValue;
         // Trigger reactivity
         budgetItems = budgetItems;
-        console.log('budgetItems updated after blur:', JSON.stringify(budgetItems));
+        //console.log('budgetItems updated after blur:', JSON.stringify(budgetItems));
       }
       editingCell = null;
     }
@@ -71,6 +76,7 @@
         <th scope="col" class="py-3 px-6 w-16 text-center">ลำดับ</th>
         <th scope="col" class="py-3 px-6">รายละเอียด</th>
         <th scope="col" class="py-3 px-6 text-right">จำนวนเงิน (บาท)</th>
+        <th scope="col" class="py-3 px-6 text-center">จัดการ</th>
       </tr>
     </thead>
     <tbody>
@@ -108,12 +114,22 @@
               {item.amount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             {/if}
           </td>
+           <td class="py-3 px-6 text-center">
+            <button
+              type="button"
+              on:click={() => removeItem(item.id)}
+              class="text-red-500 hover:text-red-700 font-medium text-xs px-2 py-1 rounded hover:bg-red-100 transition-colors"
+              title="ลบรายการนี้"
+            >
+              ลบ
+            </button>
+          </td>
         </tr>
       {/each}
     </tbody>
     <tfoot class="text-xs text-gray-700 uppercase bg-gray-50  font-semibold">
         <tr class="border-t ">
-            <td colspan="2" class="py-3 px-6 text-right">รวมทั้งสิ้น</td>
+            <td colspan="3" class="py-3 px-6 text-right">รวมทั้งสิ้น</td>
             <td class="py-3 px-6 text-right">
                 {totalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </td>
@@ -122,5 +138,11 @@
   </table>
   </div>
   
-  <button type="button" on:click={addRow} variant="outline" size="sm">เพิ่มรายการ</button>
+  <button
+    type="button"
+    on:click={addRow}
+    class="px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500 transition"
+  >
+    เพิ่มรายการ
+  </button>
 </div>

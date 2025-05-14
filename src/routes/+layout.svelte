@@ -10,7 +10,6 @@
 	import { requestNotificationPermissionAndSaveToken } from '$lib/fcm'; // Import the FCM function
 	import { slide } from 'svelte/transition'; // For smoother menu transitions
 	import { quintOut } from 'svelte/easing'; // Easing function for transitions
-
 	
 	let isLoggedIn = false;
 	let currentUser = null;
@@ -42,7 +41,7 @@
 		} else {
 			return [
 				{ id: '/cpe02', label: 'หน้าแรก', icon: 'home' },
-				{ id: '/cpe02', label: 'กรอกแบบฟอร์ม', icon: 'pencil-alt' }, // Changed order, more logical flow
+				{ id: '/cpe02#form-title', label: 'กรอกแบบฟอร์ม', icon: 'pencil-alt' }, // Changed order, more logical flow
 				{ id: '/cpe02/data', label: 'ดูข้อมูล', icon: 'database' }
 			];
 		}
@@ -405,4 +404,3 @@
 <main >
 	<slot />
 </main>
-

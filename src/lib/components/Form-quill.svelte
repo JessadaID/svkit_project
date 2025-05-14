@@ -1,45 +1,29 @@
 <script>
+    export let value = "";
+
     import { onMount } from "svelte";
     import {
       ref,
       uploadBytes,
       getDownloadURL,
-      deleteObject
     } from "firebase/storage";
-    import {
-      collection,
-      addDoc,
-      onSnapshot,
-      query,
-      orderBy,
-    } from "firebase/firestore";
     import { db, storage } from "$lib/firebase"; // ต้อง export Firebase App และ Storage
-    import { toast } from "@zerodevx/svelte-toast";
+    import { dangerToast, successToast , warningToast } from "$lib/customtoast";
   
     let editor;
     let content = "";
-    let savedPosts = [];
+    let editorId = `quill-editor-${Math.random().toString(36).substring(2, 15)}`;
   
     // อัปโหลดรูปภาพไป Storage
     async function uploadImage(file) {
       const now = new Date();
       const timestamp = now.getTime();
       const uniqueFileName = `${timestamp}-${file.name}`;
-      const storageRef = ref(storage, `uploads/${uniqueFileName}`);
+      const storageRef = ref(storage, `temp/${uniqueFileName}`);
       await uploadBytes(storageRef, file);
       return await getDownloadURL(storageRef);
     }
   
-    // แปลง dataURL เป็น File
-    function dataURLtoFile(dataUrl, filename) {
-      const arr = dataUrl.split(",");
-      const mime = arr[0].match(/:(.*?);/)[1];
-      const bstr = atob(arr[1]);
-      let n = bstr.length;
-      const u8arr = new Uint8Array(n);
-      while (n--) u8arr[n] = bstr.charCodeAt(n);
-      return new File([u8arr], filename, { type: mime });
-    }
   
     function imageHandler() {
       const input = document.createElement("input");
@@ -52,12 +36,7 @@
         if (file) {
           const maxSize = 2 * 1024 * 1024;
           if (file.size > maxSize) {
-            toast.push("ขนาดไฟล์รูปภาพต้องไม่เกิน 2MB", {
-              theme: {
-                "--toastBackground": "red",
-                "--toastColor": "white",
-              },
-            });
+            warningToast("ขนาดไฟล์รูปภาพต้องไม่เกิน 2MB");
             return;
           }
           const imageUrl = await uploadImage(file);
@@ -66,43 +45,16 @@
         }
       };
     }
-  
+
     async function logContent() {
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(content, "text/html");
-      const imgTags = doc.querySelectorAll("img");
-  
-      for (let img of imgTags) {
-        if (img.src.startsWith("data:image")) {
-          const file = dataURLtoFile(img.src, "image.png");
-          const imageUrl = await uploadImage(file);
-          img.src = imageUrl;
-        }
-      }
-  
-      const finalHTML = doc.body.innerHTML;
-  
-      try {
-        await addDoc(collection(db, "testquill"), {
-          content: finalHTML,
-          createdAt: new Date(),
-        });
-        toast.push("✅ บันทึกเรียบร้อยแล้ว");
-      } catch (err) {
-        console.error("❌ เกิดข้อผิดพลาด:", err);
-        toast.push("❌ บันทึกล้มเหลว", {
-          theme: {
-            "--toastBackground": "red",
-          },
-        });
-      }
+       
     }
-  
+
     onMount(() => {
       // โหลด Quill
       if (window.Quill) {
         window.Quill.register("modules/imageResize", window.ImageResize.default);
-        editor = new window.Quill("#editor-container", {
+        editor = new window.Quill(`#${editorId}`, {
           theme: "snow",
           modules: {
             toolbar: {
@@ -122,22 +74,13 @@
   
         editor.on("text-change", () => {
           content = editor.root.innerHTML;
+          value = content;
         });
       }
-  
-      // โหลดข้อมูลจาก Firestore
-      const q = query(collection(db, "testquill"), orderBy("createdAt", "desc"));
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        savedPosts = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-      });
-  
-      return () => unsubscribe();
-
+ 
     });
 
+    /*
     function extractImageUrls(html) {
       const regex = /<img[^>]+src="([^">]+)"/g;
       let matches;
@@ -148,8 +91,8 @@
       }
 
       return urls;
-    }
-
+    }*/
+/*
     function deleteImageFromStorage(imageUrl) {
       const baseUrl = "https://firebasestorage.googleapis.com/v0/b/YOUR_PROJECT_ID.appspot.com/o/";
       const pathEncoded = imageUrl.split(baseUrl)[1]?.split("?")[0];
@@ -169,7 +112,7 @@
           console.error("ลบไม่สำเร็จ: ", error);
         });
     }
-
+*/
   </script>
   
   <svelte:head>
@@ -268,31 +211,12 @@
   
   <div class="p-6 max-w-3xl mx-auto">
     <h1 class="text-2xl font-bold mb-4">กรอกแบบฟอร์ม</h1>
-    <div id="editor-container" class="border rounded-md  min-h-[200px]"></div>
-  
+    <div id={editorId} class="border rounded-md  min-h-[200px]" ></div>
+    
     <button
       on:click={logContent}
       class="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg"
     >
       บันทึกเนื้อหา
     </button>
-  
-    <h2 class="text-xl font-semibold mt-8 mb-4">เนื้อหาที่บันทึกไว้</h2>
-    {#if savedPosts.length === 0}
-      <p class="text-gray-500">ยังไม่มีข้อมูล</p>
-    {:else}
-      <div class="space-y-4">
-        {#each savedPosts as post}
-          <div class="p-4 border rounded-md bg-gray-50">
-            <div class="text-sm text-gray-400 mb-2">
-              {new Date(post.createdAt.seconds * 1000).toLocaleString()}
-            </div>
-            <div class="prose">
-              {@html post.content}
-            </div>
-            <!--<div>{ extractImageUrls(post.content)}</div>-->
-          </div>
-        {/each}
-      </div>
-    {/if}
   </div>

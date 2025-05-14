@@ -244,7 +244,7 @@
       isLoading = true;
       try {
         const imageUrls = await uploadImages();
-        const Method_of_operation = { tableTitle, monthLabels, activities };
+        const Operation_Schedule = { tableTitle, monthLabels, activities };
         status = "wait"; // Default status
 
         const docRef = await addDoc(collection(db, "project-approve"), {
@@ -263,7 +263,7 @@
           Theory_principles: Theory_principles.trim(),
           images: imageUrls,
           scope: scope.trim(),
-          Method_of_operation,
+          Operation_Schedule,
           benefits: benefits.trim(),
           refer: refer.trim(),
           budgetItems: budgetItems.map(item => ({

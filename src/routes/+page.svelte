@@ -25,7 +25,7 @@
         </center>
       </div>
     </div>
-  </section>
+  </section> 
 </div>
 
 <div class="custom-shape-divider-bottom-1737386667 md:block hidden">
@@ -38,7 +38,7 @@
 
 <style>
   .custom-shape-divider-bottom-1737386667 {
-    position: absolute;
+    position: absolute; 
     bottom: 0;
     left: 0;
     width: 100%;

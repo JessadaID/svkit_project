@@ -15,7 +15,7 @@ function formatDocData(doc) {
     Tasks: docData?.Tasks || {},
     term: docData?.term || "",
     adviser: Array.isArray(docData?.adviser) ? docData.adviser : [],
-    directors: docData?.directors || {},
+    directors: docData?.directors || [],
   };
 }
 

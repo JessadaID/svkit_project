@@ -35,6 +35,8 @@
     let showModal = false;
     let selectedImage = null;
     let projectId = null;
+    let showTask = false; // Control visibility of task section
+
     // Function to open image modal
     function openImageModal(image) {
       selectedImage = image;
@@ -48,6 +50,19 @@
 				const payload = { projectId };
 				const token = await createJWT(payload);
 				goto(`./project-detail/edit?token=${token}`); // Use relative path
+		
+      } else {
+        console.log('User is not authenticated, redirecting to login.');
+        warningToast('กรุณาเข้าสู่ระบบก่อนดูรายละเอียดโครงงาน');
+      }
+    }
+
+    async function goToprojectPage(term) {
+      if (checkAuthStatus()) {
+
+				const payload = { term };
+				const token = await createJWT(payload);
+				goto(`../?token=${token}`); // Use relative path
 		
       } else {
         console.log('User is not authenticated, redirecting to login.');
@@ -101,8 +116,11 @@
           const isAdvisor = project.adviser && project.adviser.some(adv => adv.email === userEmail);
           // Determine if the user can edit tasks (admin or advisor for this project)
           can_edit_tasks = role === 'admin' || isAdvisor;
+          showTask = can_edit_tasks || project.email === userEmail; // Show task section if user can edit tasks
+          //console.log(showTask);
           // Fetch related Tasks for the term
-          const taskQuery = query(
+          if (showTask){
+            const taskQuery = query(
             collection(db, "Task"),
             where("term", "==", project.term)
           );
@@ -122,6 +140,12 @@
           // This might be redundant now but kept for safety
           status.length = termTasks.length;
           comment.length = termTasks.length;
+          } else {
+            // If not showing tasks, ensure status and comment are empty
+            status = [];
+            comment = [];
+          }
+          
   
         } else {
           console.error("Project not found in project-approve");
@@ -210,28 +234,21 @@
       </a>
     </div>
   {:else if project}
-    <div class="container mx-auto px-4 py-8">
-      <!-- Breadcrumbs 
-      <a href="/cpe02/data/{termId}" class="mt-4 inline-block text-indigo-600 hover:text-indigo-800 hover:underline flex">
-          <svg class="w-6 h-6 text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-              <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m15 19-7-7 7-7"/>
-            </svg>
-             กลับไปที่รายการโครงงานภาคเรียน {termId}
-      </a>
-      -->
+    <div class="container mx-auto px-4 py-8 bg-gray-100">
+     
       <!-- Main Content Grid -->
       <div class="md:flex md:gap-8">
   
         <!-- Left Column: Project Details -->
-        <div class="md:w-7/12 lg:w-8/12 mb-8 md:mb-0">
-          <div class="bg-white shadow-lg rounded-lg p-6 sm:p-8">
-  
-            <!-- Project Title -->
-            <div class="mb-6 pb-4 border-b border-gray-200">
-              <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-1">{project.project_name_th}</h1>
-              <p class="text-lg text-gray-600">{project.project_name_en}</p>
-              <p class="text-sm text-gray-500 mt-1">ภาคเรียน: {project.term}</p>
-            </div>
+          <div class="{showTask ? 'md:w-7/12 lg:w-8/12' : 'md:w-10/12 lg:w-8/12 mx-auto'} mb-8 md:mb-0">
+            <div class="bg-white shadow-lg rounded-lg p-6 sm:p-8 h-full"> <!-- Consider adding h-full if content height varies -->
+
+              <!-- Project Title -->
+              <div class="mb-6 pb-4 border-b border-gray-200">
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-1">{project.project_name_th}</h1>
+                <p class="text-lg text-gray-600">{project.project_name_en}</p>
+                <p class="text-sm text-gray-500 mt-1">ภาคเรียน: {project.term}</p>
+              </div>
   
             <!-- Project Members & Advisors -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
@@ -309,26 +326,26 @@
               </div>
   
               <!-- Method of Operation Table (Gantt Chart) -->
-              {#if project.Method_of_operation}
+              {#if project.Operation_Schedule}
               <div>
-                  <h2 class="text-lg font-semibold text-gray-700 mb-3">9. แผนและระยะเวลาดำเนินงาน ({project.Method_of_operation.tableTitle || 'Timeline'})</h2>
+                  <h2 class="text-lg font-semibold text-gray-700 mb-3">9. แผนและระยะเวลาดำเนินงาน ({project.Operation_Schedule.tableTitle || 'Timeline'})</h2>
                   <div class="overflow-x-auto border border-gray-300 rounded-md shadow-sm">
                       <table class="w-full min-w-[600px] border-collapse text-sm">
                       <thead>
                           <tr class="bg-gray-100 text-left">
                           <th class="border-b border-gray-300 p-3 font-semibold text-gray-700 w-1/3 sm:w-1/4">กิจกรรม</th>
-                          {#each project.Method_of_operation.monthLabels as month}
+                          {#each project.Operation_Schedule.monthLabels as month}
                               <th class="border-b border-l border-gray-300 p-3 font-semibold text-gray-700 text-center whitespace-nowrap">{month}</th>
                           {/each}
                           </tr>
                       </thead>
                       <tbody class="bg-white">
-                          {#each project.Method_of_operation.activities as activity (activity.id)}
-                          <tr class="hover:bg-gray-50 transition-colors duration-150">
+                          {#each project.Operation_Schedule.activities as activity (activity.id)}
+                          <tr class="hover:bg-gray-50 transition-colors duration-150 ">
                               <td class="border-b border-gray-300 p-3 text-gray-700 align-top">
                               {activity.name}
                               </td>
-                              {#each project.Method_of_operation.monthLabels as month}
+                              {#each project.Operation_Schedule.monthLabels as month}
                               <td class="border-b border-l border-gray-300 p-0 text-center h-full">
                                   <div class="h-full w-full py-3" style:background-color={activity.months[month] ? activity.color : 'transparent'}>&nbsp;</div>
                               </td>
@@ -393,27 +410,32 @@
   
           </div>
         </div>
-  
-        <!-- Right Column: Process Component -->
-        <div class="md:w-5/12 lg:w-4/12 md:sticky md:top-8">
-           <!-- Wrap Process in a card for consistent styling -->
-           <div class="bg-white shadow-lg rounded-lg p-6">
-              <h2 class="text-xl font-semibold text-gray-800 mb-4">สถานะและการดำเนินการ</h2>
-               <Process
-                  {project}
-                  isLoading={false} 
-                  can_edit_task={can_edit_tasks} 
-                  Task={termTasks} 
-                  isLoadingtext={false} 
-                  {visibleStates}
-                  {status}
-                  {projectId}
-                  {comment}
-                  {role}
-              />
-           </div>
-        </div>
-  
+        
+        {#if showTask}
+<!-- Right Column: Process Component with Fixed Sticky Positioning -->
+          <div class="md:w-5/12 lg:w-4/12 rou">
+            <!-- The parent div needs height to make sticky work -->
+            <div class="sticky top-20 max-h-[calc(100vh-120px)] overflow-y-auto">
+                <div class="bg-white shadow-lg rounded-lg p-6">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">สถานะและการดำเนินการ</h2>
+                    <Process
+                        {project}
+                        isLoading={false} 
+                        can_edit_task={can_edit_tasks} 
+                        Task={termTasks} 
+                        isLoadingtext={false} 
+                        {visibleStates}
+                        {status}
+                        {projectId}
+                        {comment}
+                        {role}
+                    />
+                </div>
+            </div>
+          </div>
+          {/if}
+
+
       </div>
     </div>
   {/if}
