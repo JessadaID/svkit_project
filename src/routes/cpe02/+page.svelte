@@ -6,17 +6,8 @@
   import { warningToast } from "$lib/customtoast.js";
   import { createJWT } from "$lib/jwt.ts";
   import { fade } from 'svelte/transition'; // Import fade transition
-
-  $: latestTerm = data.latestTerm;
- 
-  function handleNavigation(url) {
-    if (checkAuthStatus()) {
-      goto(url);
-    } else {
-      warningToast('กรุณา Login ก่อนใช้งาน');
-      goto(`/login?redirect=${encodeURIComponent(url)}`);
-    }
-  }
+  
+  $: latestTerm = data.lastestTerm;
 
   async function navigateWithToken(term) {
 		try {

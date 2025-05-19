@@ -319,11 +319,13 @@
                   </div>
               </div>
               {/if}
-  
+              
+              {#if project.scope}
               <div>
                 <h2 class="text-lg font-semibold text-gray-700 mb-2">8. ขอบเขตโครงงาน</h2>
                 <p class="text-gray-700 leading-relaxed whitespace-pre-wrap">{project.scope || 'ไม่มีข้อมูล'}</p>
               </div>
+              {/if}
   
               <!-- Method of Operation Table (Gantt Chart) -->
               {#if project.Operation_Schedule}
@@ -345,9 +347,10 @@
                               <td class="border-b border-gray-300 p-3 text-gray-700 align-top">
                               {activity.name}
                               </td>
-                              {#each project.Operation_Schedule.monthLabels as month}
+                              
+                              {#each project.Operation_Schedule.monthLabels as month,i}
                               <td class="border-b border-l border-gray-300 p-0 text-center h-full">
-                                  <div class="h-full w-full py-3" style:background-color={activity.months[month] ? activity.color : 'transparent'}>&nbsp;</div>
+                                  <div class="h-full w-full py-3" style:background-color={activity.months[i] ? activity.color : 'transparent'}>&nbsp;</div>
                               </td>
                               {/each}
                           </tr>
@@ -357,11 +360,16 @@
                   </div>
               </div>
               {/if}
-  
-              <div>
-                <h2 class="text-lg font-semibold text-gray-700 mb-2">10. ประโยชน์ที่คาดว่าจะได้รับ</h2>
-                <p class="text-gray-700 leading-relaxed whitespace-pre-wrap">{project.benefits || 'ไม่มีข้อมูล'}</p>
-              </div>
+              
+              {#if project.benefits}
+                <div>
+                  <h2 class="text-lg font-semibold text-gray-700 mb-2">10. ประโยชน์ที่คาดว่าจะได้รับ</h2>
+                  <p class="text-gray-700 leading-relaxed whitespace-pre-wrap">{project.benefits || 'ไม่มีข้อมูล'}</p>
+                </div>
+              {/if}
+
+
+              {#if project.budgetItems && project.budgetItems.length > 0}
               <div>
                 <h2 class="text-lg font-semibold text-gray-700 mb-2">11. งบประมาณ</h2>
                 {#each project.budgetItems as bugget ,i}
@@ -371,11 +379,15 @@
                   </div>
                 {/each}
               </div>
+              {/if}
+
+              {#if project.refer}
               <div>
                 <h2 class="text-lg font-semibold text-gray-700 mb-2">12. เอกสารอ้างอิง</h2>
                 <p class="text-gray-700 leading-relaxed whitespace-pre-wrap">{project.refer || 'ไม่มีข้อมูล'}</p>
               </div>
-  
+              {/if}
+
             </div>
   
             <!-- Action Buttons -->

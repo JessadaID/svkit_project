@@ -2,77 +2,15 @@
     import { onMount } from "svelte";
     import { goto } from '$app/navigation';
     import { createJWT } from '$lib/jwt';
-    // Make sure you have a client-side Firebase initialization file.
-    // This file should initialize the Firebase app and export the 'auth' object.
-    // For example, you might have src/lib/firebaseClient.js (imported as $lib/firebaseClient).
-    //
-    // Example content for src/lib/firebaseClient.js:
-    //
-    // import { initializeApp, getApps, getApp } from 'firebase/app';
-    // import { getAuth } from 'firebase/auth';
-    //
-    // const firebaseConfig = {
-    //   apiKey: "YOUR_API_KEY",
-    //   authDomain: "YOUR_AUTH_DOMAIN",
-    //   projectId: "YOUR_PROJECT_ID",
-    //   storageBucket: "YOUR_STORAGE_BUCKET",
-    //   messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    //   appId: "YOUR_APP_ID"
-    //   // Make sure to replace these with your actual Firebase project configuration!
-    // };
-    //
-    // let app;
-    // if (!getApps().length) { // Ensure app is not initialized multiple times
-    //   app = initializeApp(firebaseConfig);
-    // } else {
-    //   app = getApp(); // Use existing app
-    // }
-    //
-    // export const auth = getAuth(app);
-    //
-    // It's generally better to use a dedicated client-side Firebase init for browser environments.
-    // If '$lib/firebase' exports the client-side 'auth', this is fine.
-    // Otherwise, consider creating '$lib/firebaseClient.js' and importing from there.
+    
     import { auth } from '$lib/firebase'; // Assuming this is your CLIENT-SIDE Firebase auth instance
     import { onAuthStateChanged } from 'firebase/auth';
 
-    let allFetchedProjects = [];
     let currentUserEmail = null;
     let isLoading = true; // Start in loading state
     let errorMessage = null;
-    let groupedProjects = {}; // { "term1": [projA, projB], "term2": [projC] }
-    let sortedTerms = [];     // ["term2", "term1"] (sorted for display)
-
-    // Custom sort function for terms like "1/2567", "2/2566"
-    // Sorts by year descending, then by semester descending
-    function sortTerms(termA, termB) {
-        const [semA, yearA] = termA.split('/').map(Number);
-        const [semB, yearB] = termB.split('/').map(Number);
-
-        if (yearA !== yearB) {
-            return yearB - yearA; // Sort by year descending
-        }
-        return semB - semA; // Sort by semester descending
-    }
-
-    function processProjects(projectsData) {
-        const groups = {};
-        if (projectsData && projectsData.data && Array.isArray(projectsData.data)) {
-            projectsData.data.forEach(project => {
-                const term = project.term || "Uncategorized";
-                if (!groups[term]) {
-                    groups[term] = [];
-                }
-                groups[term].push(project);
-            });
-            // Sort projects within each term by name (Thai)
-            for (const term in groups) {
-                groups[term].sort((a, b) => a.project_name_th.localeCompare(b.project_name_th, 'th'));
-            }
-        }
-        groupedProjects = groups;
-        sortedTerms = Object.keys(groups).sort(sortTerms);
-    }
+    let selectedTerm = null;  // The term to be used for fetching projects
+    let projects = [];        // All projects fetched for the current user
 
     async function fetchUserProjects(email) {
         if (!email) {
@@ -81,23 +19,56 @@
             return;
         }
         try {
-            // Ensure the email is properly encoded for the URL query string
-            const response = await fetch(`/api/project-data?email=${encodeURIComponent(email)}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    // Add any other headers you might need, like authorization tokens
-                },
-            });
-            if (response.ok) {
-                allFetchedProjects = await response.json();
-                processProjects(allFetchedProjects);
-                errorMessage = null; // Clear any previous error message
-                // console.log("Fetched and grouped projects:", groupedProjects);
-            } else {
-                console.error("Failed to fetch projects:", response.status, await response.text());
-                errorMessage = `Failed to load projects (status: ${response.status}). Please try again later.`;
+            
+            // Fetch form data and find the open form
+            const formRes = await fetch(`../../api/form-data?isOpen=true`);
+            const formDataResponse = await formRes.json();
+            if (!formRes.ok) {
+                throw new Error(formDataResponse.error || "ไม่สามารถโหลดข้อมูลฟอร์มได้");
             }
+            const openForm = formDataResponse.data.find(form => form.isOpen == true);
+            
+            if (openForm && openForm.term) {
+                selectedTerm = openForm.term; // Set the fixed term
+
+                // Fetch project data for the fixed term
+                const projectRes = await fetch(`../../api/project-data?term=${selectedTerm}`);
+                const projectDataResponse = await projectRes.json();
+                if (!projectRes.ok) {
+                throw new Error(projectDataResponse.error || "ไม่สามารถโหลดข้อมูลโครงงานได้");
+                }
+                
+                if (!projectDataResponse.data || !Array.isArray(projectDataResponse.data)) {
+                throw new Error("ข้อมูลโครงงานไม่ถูกต้อง");
+                }
+                
+                const allProjectsForTerm = projectDataResponse.data; 
+                
+                if (email) { // email is currentUserEmail
+                    const lowerCurrentUserEmail = email.toLowerCase();
+                    //console.log("Lowercased email:", allProjectsForTerm);
+                    projects = allProjectsForTerm.filter(p => 
+                        p.adviser && 
+                        Array.isArray(p.adviser) &&
+                        p.adviser.some(adv => 
+                            typeof adv === 'object' && 
+                            adv.email && 
+                            adv.email.toLowerCase() === lowerCurrentUserEmail
+                        )
+                    );
+                } else {
+                    // This case should ideally not be reached if onAuthStateChanged and currentUserEmail are set correctly
+                    projects = []; 
+                }
+                // console.log("Fetched and filtered project data for consultant:", projects);
+
+            } else {
+                // No open form or term found
+                errorMessage = "ไม่พบภาคการศึกษาที่เปิดให้เลือกโครงงาน";
+                projects = []; // Ensure projects is empty
+                selectedTerm = null; // Ensure selectedTerm is null
+            }
+
         } catch (err) {
             console.error("Error fetching projects:", err);
             errorMessage = "An error occurred while fetching projects. Please check your network connection.";
@@ -115,9 +86,6 @@
             } else {
                 // User is signed out
                 currentUserEmail = null;
-                allFetchedProjects = [];
-                groupedProjects = {};
-                sortedTerms = [];
                 errorMessage = "Please log in to view your projects.";
                 isLoading = false;
             }
@@ -192,7 +160,7 @@
 </script>
 
 <div class="container mx-auto px-4 py-8 min-h-screen">
-    <h1 class="text-3xl font-bold text-gray-800 mb-8 text-center">โครงงานของฉัน</h1>
+    <h1 class="text-3xl font-bold text-gray-800 mb-8 text-center">โครงงานที่ฉันเป็นที่ปรึกษา</h1>
 
     {#if isLoading}
         <div class="flex justify-center items-center py-10">
@@ -203,16 +171,19 @@
             <p class="text-lg text-gray-600">กำลังโหลดโครงงานของคุณ...</p>
         </div>
     {:else if errorMessage}
-        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md shadow-md max-w-lg mx-auto" role="alert">
+        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4  shadow-md max-w-lg mx-auto" role="alert">
             <p class="font-bold">เกิดข้อผิดพลาด</p>
             <p>{errorMessage}</p>
         </div>
-    {:else if sortedTerms.length > 0}
+    {:else if projects.length > 0}
         <div class="space-y-10">
-            {#each sortedTerms as term (term)}
                 <section>
                     <h2 class="text-2xl font-semibold text-indigo-700 mb-4 pb-2 border-b-2 border-indigo-200">
-                        ภาคเรียน: {term === "Uncategorized" ? "ไม่ได้ระบุภาคเรียน" : term}
+                        {#if selectedTerm}
+                            ภาคเรียน: {selectedTerm}
+                        {:else}
+                            กำลังรอข้อมูลภาคเรียน...
+                        {/if}
                     </h2>
                     <div class="bg-white shadow-md rounded-lg overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
@@ -239,7 +210,7 @@
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
-                                {#each groupedProjects[term] as project (project.id)}
+                                {#each projects as project (project.id)}
                                     <tr class="hover:bg-gray-50 transition-colors duration-150">
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" title={project.project_name_th}>
                                             {project.project_name_th || '-'}
@@ -280,31 +251,32 @@
                         </table>
                      </div>
                 </section>
-            {/each}
         </div>
     {:else}
         <div class="text-center py-10">
             <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
             </svg>
-            <h3 class="mt-2 text-xl font-medium text-gray-900">ไม่พบโครงงาน</h3>
+            <h3 class="mt-2 text-xl font-medium text-gray-900">
+                {#if selectedTerm}
+                    ไม่พบโครงงานที่คุณเป็นที่ปรึกษาในภาคเรียน {selectedTerm}
+                {:else if errorMessage}
+                    {errorMessage} <!-- Show specific error if projects array is empty due to it -->
+                {:else}
+                    ไม่พบโครงงานที่คุณเป็นที่ปรึกษา
+                {/if}
+            </h3>
             <p class="mt-1 text-sm text-gray-500">
                 {#if currentUserEmail}
-                    ดูเหมือนว่าคุณยังไม่มีโครงงานที่ส่งเข้ามาสำหรับอีเมล {currentUserEmail}
+                    {#if selectedTerm}
+                        ดูเหมือนว่าคุณยังไม่ได้เป็นที่ปรึกษาให้กับโครงงานใดๆ ในภาคเรียน {selectedTerm} หรือยังไม่มีโครงงานที่ตรงเงื่อนไข
+                    {:else if !errorMessage}
+                        อาจยังไม่มีภาคการศึกษาที่เปิดให้ดูข้อมูล หรือคุณยังไม่ได้เป็นที่ปรึกษาให้กับโครงงานใดๆ
+                    {/if}
                 {:else}
-                    ไม่พบข้อมูลโครงงาน.
+                    กรุณาเข้าสู่ระบบเพื่อดูข้อมูล
                 {/if}
             </p>
-             {#if currentUserEmail}
-            <div class="mt-6">
-                <a href="/cpe02" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                    <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
-                    </svg>
-                    สร้างโครงงานใหม่
-                </a>
-            </div>
-             {/if}
         </div>
     {/if}
 </div>

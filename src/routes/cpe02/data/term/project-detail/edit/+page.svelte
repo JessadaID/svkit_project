@@ -88,6 +88,15 @@
       
       if (projectDoc.exists()) {
         project = projectDoc.data();
+
+        // Initialize Operation_Schedule if it's missing
+        if (!project.Operation_Schedule) {
+          project.Operation_Schedule = {
+            tableTitle: "แผนและระยะเวลาดำเนินงาน (เดือน / พ.ศ.)",
+            monthLabels: ["ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค.", "ม.ค.", "ก.พ."],
+            activities: [], // or some default activities if needed
+          };
+        }
         //console.log("Project data loaded:", project);
         // Ensure project.adviser is an array
         if (!project.adviser || !Array.isArray(project.adviser)) {

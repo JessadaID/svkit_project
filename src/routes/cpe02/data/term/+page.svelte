@@ -51,12 +51,12 @@
 
 
 		try {
-			const res = await fetch(`/api/project-data`, {
-				method: 'POST',
+			const res = await fetch(`/api/project-data?term=${termId}`, {
+				method: 'GET',
 				headers: {
-					'Content-Type': 'application/json'
+					'Content-Type': 'application/json',
+					'Cache-Control': 'max-age=15'
 				},
-				body: JSON.stringify({ term: termId })
 			});
 
 			if (res.ok) {
@@ -157,6 +157,27 @@
 		}
 	}
 
+	/**
+	 * Gets the status from the latest task in the project.Tasks object.
+	 * @param {object} tasks - The project.Tasks object (e.g., { "0": { status: "...", ... }, "1": { status: "...", ... } }).
+	 * @returns {string} The status string (e.g., "approve", "wait") or "ไม่ระบุ".
+	 */
+	function getLatestTaskStatus(tasks) {
+		if (!tasks || typeof tasks !== 'object' || Object.keys(tasks).length === 0) {
+			return 'wait'; // Default status if no tasks or tasks is not an object
+		}
+		const taskIndices = Object.keys(tasks)
+			.map(Number) // Convert keys to numbers
+			.filter(key => !isNaN(key)) // Ensure they are valid numbers
+			.sort((a, b) => a - b); // Sort numerically
+
+		if (taskIndices.length === 0) {
+			return 'wait'; // No valid numeric keys
+		}
+
+		const latestTaskIndex = taskIndices[taskIndices.length - 1];
+		return tasks[latestTaskIndex]?.status || 'wait';
+	}
 </script>
 
 <div class="container mx-auto px-4 py-8">
@@ -333,24 +354,24 @@
 										{/if}
 									</td>
 									<td class="px-6 py-4 whitespace-nowrap">
-										<!-- Status (เหมือนเดิม) -->
-										{#if project.status === 'Approved'}
+										<!-- New Status Display Logic -->
+										{#if getLatestTaskStatus(project.Tasks) === 'approve'}
 											<span
 												class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800"
 											>
-												{project.status}
+												อนุมัติแล้ว
 											</span>
-										{:else if project.status === 'Pending'}
+										{:else if getLatestTaskStatus(project.Tasks) === 'wait'}
+											<span
+												class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800"
+											>
+												รอการอนุมัติ
+											</span>
+										{:else if getLatestTaskStatus(project.Tasks) === 'improvement'}
 											<span
 												class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800"
 											>
-												{project.status || 'ไม่ระบุ'}
-											</span>
-										{:else}
-											<span
-												class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800"
-											>
-												{project.status || 'ไม่ระบุ'}
+												ต้องแก้ไข
 											</span>
 										{/if}
 									</td>

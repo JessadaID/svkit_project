@@ -66,6 +66,8 @@
 	// --- Notification Permission ---
 	// (Kept the same logic)
 	async function checkAndRequestNotificationPermission() {
+		if (typeof window === 'undefined') return; // SSR-safe
+		
 		if (browser && 'Notification' in window && 'serviceWorker' in navigator) {
 			try {
 				if (Notification.permission === 'default') {
@@ -88,54 +90,59 @@
 
 	// --- Authentication and Data Fetching ---
 	onMount(() => {
-		menuItems = getMenuItems(); // Initialize with default menu
+	menuItems = getMenuItems();
 
-		const unsubscribe = onAuthStateChanged(auth, async (user) => {
-			if (user && checkAuthStatus()) {
-				isLoggedIn = true;
-				currentUser = user;
-				try {
-					const userDocRef = doc(db, 'users', user.uid);
-					const docSnap = await getDoc(userDocRef);
+	const unsubscribe = onAuthStateChanged(auth, handleAuthStateChange);
+	return () => unsubscribe();
+});
 
-					if (docSnap.exists()) {
-						const data = docSnap.data();
-						userName = data.name || user.email; // Use name, fallback to email
-						role = data.role;
-						menuItems = getMenuItems(role);
-					} else {
-						console.warn('User document not found in Firestore.');
-						userName = user.email; // Fallback to email
-						role = null;
-						menuItems = getMenuItems(null); // Default menu
-					}
-					await checkAndRequestNotificationPermission(); // Check notifications after successful login & data fetch
-				} catch (error) {
-					console.error('Error getting user document or handling notifications:', error);
-					dangerToast('เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + error.message);
-					// Set defaults even on error
-					userName = user.email;
-					role = null;
-					menuItems = getMenuItems(null);
-				}
+	async function handleAuthStateChange(user) {
+		if (user && checkAuthStatus()) {
+			await handleLogin(user);
+		} else {
+			await handleLogout(user);
+		}
+	}
+
+	async function handleLogin(user) {
+		isLoggedIn = true;
+		currentUser = user;
+
+		try {
+			const docSnap = await getDoc(doc(db, 'users', user.uid));
+			if (docSnap.exists()) {
+				const data = docSnap.data();
+				userName = data.name || user.email;
+				role = data.role;
+				menuItems = getMenuItems(role);
 			} else {
-				if (user && !checkAuthStatus()) {
-					//console.log(checkAuthStatus())
-					console.log('Firebase user detected, but auth check failed. Logging out.');
-					await logout(); // Ensure logout completes
-				}
-				isLoggedIn = false;
-				currentUser = null;
-				userName = '';
+				userName = user.email;
 				role = null;
 				menuItems = getMenuItems(null);
-				closeMenus(); // Close any open menus on logout
 			}
-		});
+			await checkAndRequestNotificationPermission();
+		} catch (error) {
+			console.error('Error during login setup:', error);
+			dangerToast('เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + error.message);
+			userName = user.email;
+			role = null;
+			menuItems = getMenuItems(null);
+		}
+	}
 
-		// Cleanup listener on component destroy
-		return () => unsubscribe();
-	});
+	async function handleLogout(user) {
+		if (user && !checkAuthStatus()) {
+			console.log('Firebase user detected, but auth check failed. Logging out.');
+			await logout();
+		}
+		isLoggedIn = false;
+		currentUser = null;
+		userName = '';
+		role = null;
+		menuItems = getMenuItems(null);
+		closeMenus();
+	}
+
 
 	// --- Icons Map (Using Heroicons Outline for consistency) ---
 	const icons = {
@@ -248,6 +255,21 @@
 											โครงงานของฉัน
 										</a>
 									{/if}
+
+									{#if role == "teacher" || role == "subject_teacher" || role == "admin"}
+											<a
+											href="/my-projects-consultant"
+											on:click={closeMenus}
+											class="flex items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
+											role="menuitem"
+											tabindex="-1"
+										>
+											{@html icons['document']}
+											โครงงานที่เป็นที่ปรึกษา
+										</a>
+									{/if}
+
+
 									
 									<button
 										on:click={() => {

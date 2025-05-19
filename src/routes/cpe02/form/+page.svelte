@@ -24,7 +24,6 @@
   let project_name_en = ""; //ชื่อโปรเจค eng
   let adviser = []; // ที่ปรึกษา
   let project_problem = ""; //4.	ที่มาและความสำคัญของปัญหา
-  let status = "";
   let email = "";
   let isLoading = false;
   let External_consultant = ""; // ที่ปรึกษาภายนอก
@@ -188,7 +187,7 @@
     if (isUserLoggedIn) {
       email = getCookie("email");
     } else {
-      warningToast("Session หมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
+      warningToast("กรุณาเข้าสู่ระบบเพื่อกรอกข้อมูล");
       goto("/login"); // Redirect back after login
     }
 
@@ -245,7 +244,6 @@
       try {
         const imageUrls = await uploadImages();
         const Operation_Schedule = { tableTitle, monthLabels, activities };
-        status = "wait"; // Default status
 
         const docRef = await addDoc(collection(db, "project-approve"), {
           term,
@@ -254,7 +252,6 @@
           members: members.map(m => m.trim()).filter(m => m), // Trim and remove empty
           adviser: adviser, // Trim and remove empty
           project_problem: project_problem.trim(),
-          status,
           email,
           External_consultant: External_consultant.trim(),
           Tasks, // Should be initialized properly if needed

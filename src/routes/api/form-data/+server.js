@@ -1,24 +1,27 @@
 // src/routes/api/teacher-data/+server.js
 import { db } from "$lib/firebase";
 import { collection, getDocs, query, where } from "firebase/firestore"; // Corrected import order
+import { json } from '@sveltejs/kit';
 
-export async function GET() {
+export async function GET({ url }) {
   try {
-    const dataCollection = collection(db, "forms");    
-     let q = query(dataCollection, where("isOpen", "==", true));
+    const dataCollection = collection(db, "forms");
+    let q = query(dataCollection);
 
-    // --- END MODIFIED LINE ---
+    const isOpenParam = url.searchParams.get('isOpen');
+
+    if (isOpenParam !== null) {
+      const isOpen = isOpenParam === 'true';  // Convert to boolean
+      q = query(dataCollection, where("isOpen", "==", isOpen));
+    }
 
     const snapshot = await getDocs(q);
 
-    // Map the results
     const data = snapshot.docs.map(doc => {
-    const docData = doc.data();
-
-    //console.log('docData:', docData); // Log the docData for debugging
+      const docData = doc.data();
       return {
         id: doc.id,
-        isOpen: docData?.isOpen || '',
+        isOpen: docData?.isOpen || false,
         term: docData?.term || '',
       };
     });
@@ -27,13 +30,8 @@ export async function GET() {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
-
   } catch (error) {
-    console.error('Error processing GET request:', error); // Updated error message context
-    // Removed SyntaxError check as it's less relevant for GET requests without bodies
-    return new Response(JSON.stringify({ error: 'Failed to process request' }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    console.error('Error processing GET request:', error);
+    return json({ error: 'Failed to process request' }, { status: 500 });
   }
 }

@@ -19,10 +19,10 @@
   }
 
   function updateStatus(event, index) {
-    status[index] = event.target.value;
-    status = [...status]; // Trigger reactivity if needed, though direct binding might work
+    const newStatus = event.target.value;
+    status[index] = newStatus; // Update local status array for radio button state and save payload
+    status = [...status]; // Trigger reactivity for the status array itself (for radio button binding)
   }
-
   async function addTask(index) { // Removed comment, status args as they are bound
     const projectDocRef = doc(db, "project-approve", projectId);
 
@@ -47,6 +47,18 @@
         [taskKey]: taskUpdate,
       });
       successToast("บันทึกความคิดเห็นและสถานะเรียบร้อยแล้ว!");
+
+      // Update project.Tasks on the client-side AFTER successful save
+      // to reflect the change in the UI via getStatusInfo.
+      if (!project.Tasks) {
+        project.Tasks = {};
+      }
+      if (!project.Tasks[index]) {
+        project.Tasks[index] = {}; // Initialize if it doesn't exist
+      }
+      project.Tasks[index].status = currentStatus;
+      project.Tasks[index].comment = currentComment; // Also update the comment in the project object
+      project = { ...project }; // Trigger Svelte's reactivity for the project object
       // Optionally close the toggle after successful save
       // toggleTask(index);
     } catch (error) {

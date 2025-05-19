@@ -1,19 +1,45 @@
 <script>
+    import { onMount } from 'svelte';
+
     export let tableTitle;
     export let monthLabels;
     export let activities;
 
     // ข้อมูลส่วนหัวที่แก้ไขได้
-  
+
+    onMount(() => {
+        // This code runs once after the component is first rendered.
+        // It converts activity.months to an array format if it's not already.
+        if (!activities || !monthLabels) return;
+
+        activities = activities.map(activity => {
+            if (!activity) return activity; // Should ideally not happen with valid props
+
+            let newMonthsArray;
+            if (activity.months && typeof activity.months === 'object' && !Array.isArray(activity.months)) {
+                // Convert from object format (e.g., {"Month 1": true}) to array [true, false, ...]
+                newMonthsArray = monthLabels.map(label => !!activity.months[label]);
+            } else if (Array.isArray(activity.months) && activity.months.length === monthLabels.length) {
+                // Already in correct array format
+                return activity; 
+            } else {
+                // Fallback: Initialize or re-initialize if format is unexpected or length mismatch
+                newMonthsArray = Array(monthLabels.length).fill(false);
+            }
+            return { ...activity, months: newMonthsArray };
+        });
+    });
+
     function addActivity() {
-      const newId = activities.length + 1;
+      // Ensure unique ID, robust against deletions
+      const newId = activities.length > 0 ? Math.max(0, ...activities.map(a => a.id)) + 1 : 1;
       activities = [
         ...activities,
         {
           id: newId,
           name: "",
-          months: Object.fromEntries(monthLabels.map((month) => [month, false])),
-          color: "#11235A",
+          months: Array(monthLabels.length).fill(false), // Initialize months as an array of booleans
+          color: "#11235A", // Preserving this property from original code
         },
       ];
     }
@@ -32,40 +58,36 @@
   
     // เพิ่มคอลัมน์เดือนใหม่
     function addMonth() {
-      const newMonth = `เดือน${monthLabels.length + 1}`;
-      monthLabels = [...monthLabels, newMonth];
+      const newMonthName = `เดือน${monthLabels.length + 1}`; // Example name for the new month label
+      monthLabels = [...monthLabels, newMonthName]; // Add new month name to labels
   
       // อัพเดทข้อมูลกิจกรรมเพื่อรองรับเดือนใหม่
-      activities = activities.map((activity) => ({
-        ...activity,
-        months: {
-          ...activity.months,
-          [newMonth]: false,
-        },
-      }));
-    }
-  
-    function removeMonth(index) {
-      const monthToRemove = monthLabels[index];
-      monthLabels = monthLabels.filter((_, i) => i !== index);
-  
-      // อัปเดตกิจกรรมเพื่อเอาเดือนที่ลบออก
-      activities = activities.map((activity) => {
-        const updatedMonths = { ...activity.months };
-        delete updatedMonths[monthToRemove];
+      activities = activities.map(activity => {
+        // activity.months should be an array. Append false for the new month.
+        // Safeguard with (activity.months || []) in case it's undefined/null.
+        const updatedMonths = [...(activity.months || []), false];
         return { ...activity, months: updatedMonths };
       });
     }
   
-    // อัพเดทข้อมูลกิจกรรมเมื่อมีการเปลี่ยนแปลงชื่อเดือน
-    $: {
-      activities = activities.map((activity) => ({
-        ...activity,
-        months: Object.fromEntries(
-          monthLabels.map((month) => [month, activity.months[month] || false])
-        ),
-      }));
+    function removeMonth(index) {
+      monthLabels = monthLabels.filter((_, i) => i !== index);
+  
+      // อัปเดตกิจกรรมเพื่อเอาเดือนที่ลบออก
+      activities = activities.map((activity) => {
+        // activity.months should be an array. Splice it.
+        // Safeguard with (activity.months || [])
+        const newMonthsArray = [...(activity.months || [])];
+        if (index >= 0 && index < newMonthsArray.length) { // Check bounds before splicing
+          newMonthsArray.splice(index, 1);
+        }
+        return { ...activity, months: newMonthsArray };
+      });
     }
+  
+    // The problematic reactive block that caused issues with duplicate month names has been removed.
+    // It was attempting to rebuild `activity.months` based on month names, which is not needed
+    // when `activity.months` is an array indexed by position.
 </script>
 
 <div>
@@ -170,11 +192,11 @@
               </div>
             </td>
             <!-- Month Checkboxes -->
-            {#each monthLabels as month}
+            {#each monthLabels as month, i (i)} <!-- Use index i for key and for accessing activity.months -->
               <td class="px-1 py-2 text-center">
                 <input
                   type="checkbox"
-                  bind:checked={activity.months[month]}
+                  bind:checked={activity.months[i]} 
                   class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 cursor-pointer"
                 />
               </td>

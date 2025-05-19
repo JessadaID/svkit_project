@@ -4,17 +4,17 @@
 	let error = null;
 	import { createJWT } from '$lib/jwt';
 	import { goto } from '$app/navigation';
-
+	
 	async function navigateWithToken(term) {
-		try {
-			const payload = { term };
-			const token = await createJWT(payload);
-			//console.log('Token:', token);
-			goto(`/cpe02/data/term?token=${token}`);
-		} catch (err) {
-			console.error('Error creating JWT:', err);
-			// Handle error appropriately, e.g., display an error message to the user
-		}
+			try {
+				const payload = { term };
+				const token = await createJWT(payload);
+				//console.log('Token:', token);
+				goto(`/cpe02/data/term?token=${token}`);
+			} catch (err) {
+				console.error('Error creating JWT:', err);
+				// Handle error appropriately, e.g., display an error message to the user
+			}
 	}
 </script>
 
@@ -41,13 +41,13 @@
 
 		<!-- Container สำหรับจัดเรียงการ์ด -->
 		<div class="w-full">
-			{#each data.terms as form (form.id || form._id || Math.random())}
+			{#each data.terms as form}
 				<div
-					on:click={() => navigateWithToken(form)}
-					class="p-4 sm:p-5 flex-grow text-sm leading-relaxed space-y-2 border border-gray-400 bg-gray-50 hover:bg-gray-100 cursor-pointer"
+					on:click={() => navigateWithToken(form.term )}
+					class="p-4 sm:p-5 flex-grow mb-1 text-sm leading-relaxed space-y-2 border border-gray-400 bg-gray-50 hover:bg-gray-100 cursor-pointer"
 				>
 					<strong class="font-medium text-gray-800 mr-1">ภาคการศึกษา :</strong>
-					{form || 'ไม่ระบุ'}
+					{form.term || 'ไม่ระบุ'}
 				</div>
 			{/each}
 		</div>

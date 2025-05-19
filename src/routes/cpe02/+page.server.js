@@ -1,46 +1,30 @@
-import { db } from "$lib/firebase";
-import { collection, getDocs, query, orderBy } from "firebase/firestore";
-
-export async function load() {
+// +page.server.js
+export async function load({ fetch }) {
   try {
-    // 1. ดึงข้อมูลทั้งหมดที่เรียงตาม createdAt
-    const formsRef = collection(db, "forms");
-    const q = query(formsRef, orderBy("createdAt", "desc"));
-    const snapshot = await getDocs(q);
-    
-    // 2. กรองเฉพาะ isOpen = true ใน JavaScript
-    const openDocs = snapshot.docs.filter(
-      (doc) => doc.data().isOpen === true
-    );
-    
-    let latestTerm = null;
-    
-    if (openDocs.length > 0) {
-      const doc = openDocs[0]; // เอาเฉพาะตัวแรก (ล่าสุด)
-      const data = doc.data();
-      
-      // แปลง Timestamp เป็นรูปแบบที่ serializable
-      latestTerm = { 
-        id: doc.id,
-        ...data,
-        // แปลง Timestamp เป็น ISO string หรือ milliseconds
-        createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : null,
-        // หากมี Timestamp อื่นๆ ให้แปลงด้วย
-        updatedAt: data.updatedAt ? data.updatedAt.toDate().toISOString() : null
-      };
+    const response = await fetch("/api/form-data?isOpen=true",
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          'Cache-Control': 'max-age=60'
+        },
+      }
+    ); // ใช้ fetch ที่ส่งเข้ามาจาก SvelteKit
+    if (!response.ok) {
+      throw new Error(`Failed to fetch form data: ${response.statusText}`);
     }
     
-    // ส่งข้อมูลกลับไปให้ component
-    return {
-      latestTerm
-    };
-    
+    const { data } = await response.json();
+     // ดึง term ล่าสุดจาก array
+    const lastestTerm = data[0]
+
+    //console.log("lastestTerm:", lastestTerm); // แสดงผลใน console เพื่อตรวจสอบ
+    return { lastestTerm }; // ส่ง term ล่าสุดกลับไป
   } catch (error) {
-    console.error("Error loading latest term:", error);
-    
+    console.error("Error loading form data:", error);
+
     return {
-      latestTerm: null,
-      error: "Error loading latest term: " + error.message
+      error: "Error loading form data: " + error.message
     };
   }
 }
