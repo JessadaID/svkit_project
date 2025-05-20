@@ -3,7 +3,9 @@ import type { RequestHandler } from '@sveltejs/kit';
 
 export const GET: RequestHandler = () => {
   const content = `User-agent: *
-Disallow:
+Disallow: /Dashboard
+Disallow: /TS_Dashboard
+Disallow: /api
 Sitemap: https://svkit-project.vercel.app/sitemap.xml`;
 
   return new Response(content, {
