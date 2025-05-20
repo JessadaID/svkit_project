@@ -18,6 +18,11 @@
 	}
 </script>
 
+<svelte:head>
+	<title>รายการฟอร์ม CE02</title>
+	<meta name="description" content="แบบเสนอโครงงาน CE02 - จัดการแบบฟอร์มเสนอหัวข้อโครงงานคอมพิวเตอร์ของคุณ" />
+	<link rel="icon" href="/favicon.ico" />
+</svelte:head>
 <!-- ใช้ font-sans หรือ font ที่คุณกำหนดใน tailwind.config.js -->
 <div
 	class="max-w-7xl mx-auto my-8 px-4 sm:px-6 lg:px-8 font-sans text-gray-800"

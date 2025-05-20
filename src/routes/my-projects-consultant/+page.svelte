@@ -159,6 +159,13 @@
 	}
 </script>
 
+<svelte:head>
+    <title>โครงงานที่ฉันเป็นที่ปรึกษา</title>
+    <meta name="description" content="ดูโครงงานที่คุณเป็นที่ปรึกษา" />
+    <link rel="icon" href="/favicon.ico" />
+</svelte:head>
+
+
 <div class="container mx-auto px-4 py-8 min-h-screen">
     <h1 class="text-3xl font-bold text-gray-800 mb-8 text-center">โครงงานที่ฉันเป็นที่ปรึกษา</h1>
 

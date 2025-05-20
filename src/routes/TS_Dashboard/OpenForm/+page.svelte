@@ -14,13 +14,19 @@
     } from "firebase/firestore";
     import { onMount } from "svelte";
     import ConfirmModal from '$lib/components/ConfirmModal.svelte';
+    import Modal from '$lib/components/Modal.svelte'; // Import the Modal component
     import { dangerToast } from "$lib/customtoast.js";
 
     let terms = [];
-    let loading = false;
-    let showModal = false;
-    let editingTerm = null;
-    let editTermName = "";
+    let loading = true;
+
+    // State for the new unified Modal
+    let showTermModal = false;
+    let modalMode: 'create' | 'edit' = 'create'; // To distinguish between create and edit
+    let currentTermName = ""; // Bound to the modal's input
+    let currentEditingTerm = null; // Stores the term object when editing
+    let currentProjectLimit: number | null = null; // For the new input
+    let modalTitle = "";
     
     let messageBody = "";
     let title = "";
@@ -31,41 +37,50 @@
     let confirmModalConfirmButtonClass = "bg-blue-600 hover:bg-blue-700 text-white";
     
     onMount(async () => {
-      try {
-        loading = true;
-        const formsRef = collection(db, "forms");
-        const q = query(formsRef, orderBy("createdAt", "desc"));
-        const snapshot = await getDocs(q);
-  
-        terms = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
-      loading = false;
+      loadTerms();
     });
   
     async function loadTerms() {
-      loading = true;
-      const formsRef = collection(db, "forms");
-      const q = query(formsRef, orderBy("createdAt", "desc"));
-      const snapshot = await getDocs(q);
-      terms = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      loading = false;
+ 
+      try {
+        loading = true;
+
+        const response = await fetch('/api/form-data?createdAt=desc', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'max-age=30'
+          }
+        });
+        const data = await response.json();
+        if (data.error) {
+          console.error("Error fetching data:", data.error);
+          return;
+        }
+        terms = data.data;
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }finally {
+        loading = false;
+      }
     }
   
-    function openEditModal(term) {
-      editingTerm = term;
-      editTermName = term.term;
-      showModal = true;
+    function openTermModalForEdit(term) {
+      modalMode = 'edit';
+      modalTitle = `แก้ไขข้อมูลเทอม: ${term.term}`;
+      currentTermName = term.term;
+      currentProjectLimit = term.projectLimit === undefined ? 5 : term.projectLimit; // Default to 5 if not set
+      currentEditingTerm = term;
+      showTermModal = true;
     }
-  
-    function closeModal() {
-      showModal = false;
-      editingTerm = null;
-      editTermName = "";
+
+    function openTermModalForCreate() {
+      modalMode = 'create';
+      modalTitle = 'สร้างเทอมใหม่';
+      currentTermName = "";
+      currentProjectLimit = 5; // Default project limit for new terms
+      currentEditingTerm = null;
+      showTermModal = true;
     }
   
     async function toggleForm(termId, isOpen) {
@@ -113,39 +128,79 @@
       };
       showConfirmModal = true;
     }
+
+    async function processUpdateTerm(updatedName: string, projectLimit: number | null) {
+      if (!currentEditingTerm || !updatedName.trim()) return;
   
-    async function updateTerm() {
-      if (!editingTerm || !editTermName.trim()) return;
-  
+      loading = true;
       try {
-        loading = true;
-        const termRef = doc(db, "forms", editingTerm.id);
+        const termRef = doc(db, "forms", currentEditingTerm.id);
         await updateDoc(termRef, {
-          term: editTermName.trim(),
+          term: updatedName.trim(),
+          projectLimit: projectLimit === null ? 0 : Number(projectLimit),
           updatedAt: serverTimestamp(),
         });
         await loadTerms();
-        closeModal();
+        return true; // Indicate success
       } catch (error) {
         console.error("Error updating term:", error);
         alert("เกิดข้อผิดพลาดในการแก้ไขข้อมูล");
+        return false; // Indicate failure
       } finally {
         loading = false;
       }
     }
-  
-    async function requestDeleteTerm() {
-      if (!editingTerm) return;
 
-      confirmModalMessage = `คุณแน่ใจหรือไม่ที่จะลบเทอม "${editingTerm.term}"?\nการกระทำนี้ไม่สามารถย้อนกลับได้`;
+    async function processCreateTerm(newTermName: string, projectLimit: number | null) {
+      if (!newTermName.trim()) return;
+
+      loading = true;
+      try {
+        const batch = writeBatch(db);
+        const formsRef = collection(db, "forms");
+        const snapshot = await getDocs(formsRef);
+        snapshot.docs.forEach((doc) => {
+          if (doc.data().isOpen) {
+            batch.update(doc.ref, {
+              isOpen: false,
+              updatedAt: serverTimestamp(),
+            });
+          }
+        });
+  
+        const newFormRef = doc(collection(db, "forms"));
+        batch.set(newFormRef, {
+          term: newTermName.trim(),
+          projectLimit: projectLimit === null ? 0 : Number(projectLimit),
+          isOpen: false,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+  
+        await batch.commit();
+        await loadTerms();
+        return true; // Indicate success
+      } catch (error) {
+        console.error("Error creating new term:", error);
+        alert("เกิดข้อผิดพลาดในการสร้างเทอมใหม่");
+        return false; // Indicate failure
+      } finally {
+        loading = false;
+      }
+    }
+
+    function handleDeleteRequest() { // Renamed to avoid conflict if needed, called by Modal's delete event
+      if (!currentEditingTerm) return;
+
+      confirmModalMessage = `คุณแน่ใจหรือไม่ที่จะลบเทอม "${currentEditingTerm.term}"?\nการกระทำนี้ไม่สามารถย้อนกลับได้`;
       confirmModalConfirmButtonClass = "bg-red-600 hover:bg-red-700 text-white"; // ลบ (แดง)
       confirmModalOnConfirm = async () => {
-        if (!editingTerm) return;
+        if (!currentEditingTerm) return;
         try {
           loading = true;
-          await deleteDoc(doc(db, "forms", editingTerm.id));
+          await deleteDoc(doc(db, "forms", currentEditingTerm.id));
           await loadTerms();
-          closeModal(); // Close the edit modal
+          closeTermModal(); // Close the main term modal after deletion
         } catch (error) {
           console.error("Error deleting term:", error);
           alert("เกิดข้อผิดพลาดในการลบข้อมูล");
@@ -154,6 +209,32 @@
         }
       };
       showConfirmModal = true;
+    }
+
+    // Updated to handle an object from the modal's save event
+    async function handleModalSave(eventDetail: { termName: string, projectLimit: number | null }) {
+      let success = false;
+      if (modalMode === 'create') {
+        success = await processCreateTerm(eventDetail.termName, eventDetail.projectLimit);
+      } else if (modalMode === 'edit') {
+        success = await processUpdateTerm(eventDetail.termName, eventDetail.projectLimit);
+      }
+      if (success) {
+        closeTermModal();
+      }
+    }
+
+    function closeTermModal() {
+      showTermModal = false;
+      currentTermName = "";
+      currentProjectLimit = null;
+      currentEditingTerm = null;
+      // modalMode and modalTitle will be reset when opening the modal next time
+    }
+
+    // This function is now only for the button click
+    function triggerCreateNewTerm() {
+      openTermModalForCreate();
     }
 
   async function sendNotification(isOpen) {
@@ -173,14 +254,6 @@
         body: JSON.stringify(payload)
       });
 
-      //const result = await response.json();
-      //console.log(result)
-      /*
-      if (result.success) {
-        status = '✅ ส่งสำเร็จ';
-      } else {
-        status = `❌ ล้มเหลว: ${result.error}`;
-      }*/
     } catch (error: any) {
       console.error("Error sending notification:", error);
       dangerToast("เกิดข้อผิดพลาดในการส่งการแจ้งเตือน"+error.message);
@@ -188,43 +261,6 @@
       loading = false;
     }
   }
-
-    async function createNewTerm() {
-      const newTerm = prompt("กรุณาใส่ชื่อเทอม (เช่น 2024-2)");
-      if (!newTerm) return;
-  
-      try {
-        loading = true;
-        const batch = writeBatch(db);
-  
-        const formsRef = collection(db, "forms");
-        const snapshot = await getDocs(formsRef);
-        snapshot.docs.forEach((doc) => {
-          if (doc.data().isOpen) {
-            batch.update(doc.ref, {
-              isOpen: false,
-              updatedAt: serverTimestamp(),
-            });
-          }
-        });
-  
-        const newFormRef = doc(collection(db, "forms"));
-        batch.set(newFormRef, {
-          term: newTerm,
-          isOpen: true,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
-  
-        await batch.commit();
-        await loadTerms();
-      } catch (error) {
-        console.error("Error creating new term:", error);
-        alert("เกิดข้อผิดพลาดในการสร้างเทอมใหม่");
-      } finally {
-        loading = false;
-      }
-    }
   
     loadTerms();
   </script>
@@ -233,7 +269,7 @@
     <div class="flex justify-between items-center mb-8">
       <h1 class="text-3xl font-bold text-gray-800">จัดการเปิด/ปิดฟอร์ม</h1>
       <button
-        on:click={createNewTerm}
+        on:click={triggerCreateNewTerm}
         disabled={loading}
         class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
       >
@@ -289,7 +325,7 @@
                   {term.isOpen ? "ปิดฟอร์ม" : "เปิดฟอร์ม"}
                 </button>
                 <button
-                  on:click={() => openEditModal(term)}
+                  on:click={() => openTermModalForEdit(term)}
                   disabled={loading}
                   class="px-4 py-2 rounded-lg font-medium bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -297,14 +333,20 @@
                 </button>
               </div>
             </div>
-  
-            {#if term.createdAt}
-              <p class="text-sm text-gray-500 mt-2">
-                สร้างเมื่อ: {new Date(term.createdAt.toDate()).toLocaleString(
-                  "th-TH"
-                )}
-              </p>
-            {/if}
+            
+        {#if term.createdAt || term.updatedAt}
+          <p class="text-sm text-gray-500 mt-2">
+            อัปเดตเมื่อ: {term.updatedAt}
+          </p>
+          <p class="text-sm text-gray-500 mt-2">
+            สร้างเมื่อ: {term.createdAt}
+          </p>
+          <p class="text-sm text-gray-600 mt-1">
+            จำนวนโครงงานที่รับได้: {term.projectLimit !== undefined ? term.projectLimit : 'ไม่ได้กำหนด'}
+          </p>
+        {/if}
+
+        
           </div>
         {:else}
           <div class="text-center py-8 text-gray-500">ไม่พบข้อมูลเทอม</div>
@@ -313,54 +355,18 @@
     {/if}
   </div>
   
-  {#if showModal}
-    <div
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-    >
-      <div class="bg-white rounded-lg p-6 w-full max-w-md">
-        <h2 class="text-xl font-bold mb-4">แก้ไขข้อมูลเทอม</h2>
-  
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            ชื่อเทอม
-          </label>
-          <input
-            type="text"
-            bind:value={editTermName}
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="เช่น 2024-2"
-          />
-        </div>
-  
-        <div class="flex justify-between">
-          <button
-            on:click={requestDeleteTerm}
-            disabled={loading}
-            class="bg-red-50 hover:bg-red-100 text-red-600 font-semibold py-2 px-4 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            ลบ
-          </button>
-  
-          <div class="space-x-2">
-            <button
-              on:click={updateTerm}
-              disabled={loading}
-              class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              บันทึก
-            </button>
-            <button
-              on:click={closeModal}
-              disabled={loading}
-              class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              ยกเลิก
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  {/if}
+  <!-- Unified Modal for Create and Edit -->
+  <Modal
+    bind:show={showTermModal}
+    title={modalTitle}
+    bind:value={currentTermName}
+    bind:projectLimitValue={currentProjectLimit} 
+    loading={loading}
+    showDelete={modalMode === 'edit'}
+    on:save={(e) => handleModalSave(e.detail)}
+    on:cancel={closeTermModal}
+    on:delete={handleDeleteRequest}
+  />
 
   <ConfirmModal
     bind:show={showConfirmModal}

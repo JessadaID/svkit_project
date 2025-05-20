@@ -191,6 +191,12 @@
 	}
 </script>
 
+<svelte:head>
+    <title>โครงงานของฉัน</title>
+    <meta name="description" content="ดูและจัดการโครงงานของคุณที่นี่" />
+    <link rel="icon" href="/favicon.ico" />
+</svelte:head>
+
 <div class="container mx-auto px-4 py-8 min-h-screen">
     <h1 class="text-3xl font-bold text-gray-800 mb-8 text-center">โครงงานของฉัน</h1>
 

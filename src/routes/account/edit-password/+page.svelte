@@ -78,6 +78,12 @@
     };
 </script>
 
+<svelte:head>
+    <title>เปลี่ยนรหัสผ่าน</title>
+    <meta name="description" content="เปลี่ยนรหัสผ่านของคุณ" />
+    <link rel="icon" href="/favicon.ico" />
+</svelte:head>
+
 {#if isAuthenticated}
     <main class="max-w-md mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
         <h1 class="text-2xl font-bold mb-6">เปลี่ยนรหัสผ่าน</h1>

@@ -221,6 +221,12 @@
     }
   </script>
   
+  <svelte:head>
+    <title>รายละเอียดโครงงาน</title>
+    <meta name="description" content="รายละเอียดโครงงาน" />
+    <link rel="icon" href="/favicon.ico" />
+  </svelte:head>
+
   {#if isLoading}
     <div class="flex justify-center items-center min-h-[60vh]">
       <Loading />

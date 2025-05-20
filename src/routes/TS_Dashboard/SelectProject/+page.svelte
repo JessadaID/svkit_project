@@ -20,6 +20,7 @@
   let userEmail = "";
   let userName = ""; // To store teacher's name
   let saving = false;
+  let projectLimit = null; // To store the project limit from openForm
 
   // Filter variables
   let searchQuery = "";
@@ -38,7 +39,7 @@
       }
       
       // Fetch form data and find the open form
-      const formRes = await fetch(`../../api/form-data`);
+      const formRes = await fetch(`../../api/form-data?isOpen=true`);
       const formDataResponse = await formRes.json();
       if (!formRes.ok) {
         throw new Error(formDataResponse.error || "ไม่สามารถโหลดข้อมูลฟอร์มได้");
@@ -47,7 +48,8 @@
 
       if (openForm && openForm.term) {
         selectedTerm = openForm.term; // Set the fixed term
-
+        projectLimit = openForm.projectLimit !== undefined ? Number(openForm.projectLimit) : null; // Get project limit
+        
         // Fetch project data for the fixed term
         const projectRes = await fetch(`../../api/project-data?term=${selectedTerm}`);
         const projectDataResponse = await projectRes.json();
@@ -165,6 +167,12 @@
   async function saveSelection() {
     if (selectedProjects.length === 0) {
       warningToast("กรุณาเลือกโครงงานอย่างน้อย 1 โครงงาน");
+      return;
+    }
+
+    // Check against projectLimit
+    if (projectLimit !== null && selectedProjects.length > projectLimit) {
+      warningToast(`คุณสามารถเลือกโครงงานได้สูงสุด ${projectLimit} โครงงานเท่านั้น`);
       return;
     }
 
@@ -291,6 +299,11 @@
           โครงงานที่เลือก: <span class="font-bold"
             >{selectedProjects.length}</span
           > โครงงาน
+          {#if projectLimit !== null}
+            <span class="text-gray-600 ml-2">
+              (เลือกได้สูงสุด: <b class="text-blue-800">{projectLimit}</b> โครงงาน)
+            </span>
+          {/if}
         </p>
       </div>
 
@@ -364,10 +377,12 @@
         {:else}
           {#each filteredProjects as project (project.id)}
             <div
+              role="button"
               class="border rounded-lg p-4 cursor-pointer hover:bg-gray-50 transition-colors duration-200 {project.selected
                 ? 'bg-blue-50 border-blue-300'
                 : ''}"
               on:click={() => toggleSelect(project)}
+              tabindex="0"
             >
               <div class="flex justify-between items-start">
                 <div>

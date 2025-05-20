@@ -85,6 +85,13 @@
 	}
 </script>
 
+
+<svelte:head>
+	<title>สมัครสมาชิก</title>
+	<meta name="description" content="สมัครสมาชิกเพื่อเข้าถึงฟีเจอร์ทั้งหมด" />
+	<link rel="icon" href="/favicon.ico" />
+</svelte:head>
+
 <div class="flex justify-center items-center min-h-screen">
 	<div
 		class="flex w-full max-w-4xl shadow-lg rounded-lg overflow-hidden relative"

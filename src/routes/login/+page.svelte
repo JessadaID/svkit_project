@@ -125,6 +125,12 @@
   });
 </script>
 
+<svelte:head>
+  <title>เข้าสู่ระบบ</title>
+  <meta name="description" content="เข้าสู่ระบบเพื่อเข้าถึงฟีเจอร์ทั้งหมด" />
+  <link rel="icon" href="/favicon.ico" />
+</svelte:head>
+
 <div class="flex justify-center items-center min-h-screen">
   <div class="flex w-full max-w-4xl rounded-lg overflow-hidden relative" style="box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);">
     <div class="hidden md:block w-1/2 relative" >

@@ -326,6 +326,12 @@
 
 </script>
 
+<svelte:head>
+  <title>กรอกแบบเสนอโครงงาน CE02</title>
+  <meta name="description" content="แบบเสนอโครงงาน CE02 - จัดการแบบฟอร์มเสนอหัวข้อโครงงานคอมพิวเตอร์ของคุณ" />
+  <link rel="icon" href="/favicon.ico" />
+</svelte:head>
+
 <!-- Main container with padding and background -->
 <div class="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-pink-50 py-8 md:py-12 px-4" transition:fade={{ duration: 300 }}>
   <!-- Form Card -->

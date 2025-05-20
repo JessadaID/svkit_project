@@ -40,6 +40,12 @@
 	};
 </script>
 
+<svelte:head>
+	<title>ลืมรหัสผ่าน</title>
+	<meta name="description" content="รีเซ็ตรหัสผ่านของคุณ" />
+	<link rel="icon" href="/favicon.ico" />
+</svelte:head>
+
 <!-- ใช้ flexbox จัดกึ่งกลางแนวตั้งและแนวนอนเต็มหน้าจอ -->
 <div class="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 px-4">
 	<!-- การ์ดฟอร์ม -->

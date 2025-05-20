@@ -18,6 +18,12 @@
     }
   </script>
   
+<svelte:head>
+    <title>Teacher Dashboard</title>
+    <meta name="description" content="Teacher Dashboard - จัดการแบบฟอร์มเสนอหัวข้อโครงงานคอมพิวเตอร์ของคุณ" />
+    <link rel="icon" href="/favicon.ico" />
+  </svelte:head>
+
   <div class="container mx-auto px-4 py-8">
     <h1 class="text-3xl font-bold text-center text-gray-800 mb-10">
       Teacher Dashboard

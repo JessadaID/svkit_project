@@ -205,6 +205,7 @@
                 class="p-4 border border-gray-200 rounded-lg hover:bg-sky-50 hover:shadow-md cursor-pointer transition-all duration-150 ease-in-out"
                 class:selected-task={selectedProject && selectedProject.id === project.id}
               >
+            
                 <h3 class="font-semibold text-slate-700 text-lg">{project.title}</h3>
                 <p class="text-gray-600 text-sm my-1 truncate" title={project.description}>คำอธิบาย: {project.description}</p>
                 <p class="text-gray-500 text-sm">กำหนดส่ง: {project.dueDate}</p>

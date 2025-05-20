@@ -97,6 +97,12 @@
     }
   </script>
   
+  <svelte:head>
+    <title>บัญชีของฉัน</title>
+    <meta name="description" content="จัดการข้อมูลบัญชีผู้ใช้ของคุณ" />
+    <link rel="icon" href="/favicon.ico" />
+  </svelte:head>
+  
   {#if isAuthenticated}
     {#if isLoading}
     <Loading/>

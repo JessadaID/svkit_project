@@ -59,6 +59,12 @@
 
 </script>
 
+<svelte:head>
+  <title>ไทม์ไลน์การเสนอโครงงาน</title>
+  <meta name="description" content="ไทม์ไลน์การเสนอโครงงานวิศวกรรมคอมพิวเตอร์" />
+  <link rel="icon" href="/favicon.ico" />
+</svelte:head>
+
 <div class="container mx-auto px-4 py-8 font-['Sarabun']">
     <h1 class="text-3xl font-semibold text-center mb-5 text-gray-800">
         ไทม์ไลน์การเสนอโครงงาน 

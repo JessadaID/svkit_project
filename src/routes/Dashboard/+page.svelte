@@ -81,6 +81,12 @@
   }
 </script>
 
+<svelte:head>
+  <title>Dashboard</title>
+  <meta name="description" content="Dashboard for managing project proposals" />
+  <link rel="icon" href="/favicon.ico" />
+</svelte:head>
+
 <div class="flex h-[calc(100vh-4rem)]"> 
   <!-- Sidebar -->
   <div class="w-64 bg-gray-800 text-white p-4 h-full"> 

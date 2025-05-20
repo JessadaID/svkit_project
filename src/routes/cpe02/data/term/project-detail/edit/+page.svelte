@@ -345,6 +345,12 @@
   }
 </script>
 
+<svelte:head>
+  <title>แก้ไขข้อมูลโครงงาน</title>
+  <meta name="description" content="แก้ไขข้อมูลโครงงาน CE02" />
+  <link rel="icon" href="/favicon.ico" />
+</svelte:head>
+
 <!-- Main container -->
 <div class="min-h-screen bg-gray-100 py-8 md:py-12 px-4">
   <!-- Form Card -->
@@ -569,15 +575,15 @@
             </div>
             
             <div>
-              <label for="research_data" class="block text-sm font-medium text-gray-700 mb-1">12. เอกสารอ้างอิง<span class="text-red-500">*</span></label>
+              <label for="refer" class="block text-sm font-medium text-gray-700 mb-1">12. เอกสารอ้างอิง<span class="text-red-500">*</span></label>
               <textarea
-                id="research_data"
+                id="refer"
                 rows="8"
                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 required
-                bind:value={project.research_data}
-                on:keydown={(event) => handleTab(event, (value) => (project.research_data = value))}
-                placeholder="ระบุประโยชน์ที่คาดว่าจะได้รับของโครงงาน..."
+                bind:value={project.refer}
+                on:keydown={(event) => handleTab(event, (value) => (project.refer = value))}
+                placeholder="ระบุเอกสารอ้างอิงของโครงงาน..."
               ></textarea>
             </div>
           </fieldset>

@@ -22,6 +22,11 @@
 	}
 </script>
 
+<svelte:head>
+  <title>แบบเสนอโครงงาน CE02</title>
+  <meta name="description" content="แบบเสนอโครงงาน CE02 - จัดการแบบฟอร์มเสนอหัวข้อโครงงานคอมพิวเตอร์ของคุณ" />
+  <link rel="icon" href="/favicon.ico" />
+</svelte:head>
 
 <!-- Main Content Area -->
 <div class="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] px-4 py-10 bg-gradient-to-br from-blue-50 via-white to-green-50">

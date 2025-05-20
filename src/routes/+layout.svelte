@@ -171,7 +171,7 @@
 			<!-- Left Side: Logo and Desktop Menu -->
 			<div class="flex items-center">
 				<a href="/" class="flex-shrink-0 flex items-center mr-4">
-					<img src="/LOGO.png" width="32" height="32" alt="Logo" class="h-8 w-auto" />
+					<img src="/LOGO.png" width="32" height="32" alt="LOGO.png" class="h-8 w-auto" />
 					<!-- Optional: Add Text Logo for larger screens -->
 					<!-- <span class="ml-2 text-xl font-semibold text-gray-800 hidden sm:inline">ProjectApp</span> -->
 				</a>

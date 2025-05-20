@@ -180,6 +180,12 @@
 	}
 </script>
 
+<svelte:head>
+	<title>รายการโครงงานภาคการศึกษา {termId}</title>
+	<meta name="description" content="รายการโครงงานภาคการศึกษา {termId}" />
+	<link rel="icon" href="/favicon.ico" />
+</svelte:head>
+
 <div class="container mx-auto px-4 py-8">
 	<h1 class="text-2xl md:text-3xl font-bold text-center text-gray-800 mb-6">
 		โครงงานสำหรับภาคเรียน: <span class="text-indigo-600">{termId || 'ไม่ระบุ'}</span>
