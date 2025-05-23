@@ -283,11 +283,8 @@
   <h1 class="text-2xl font-bold mb-6">เลือกเป็นกรรมการโครงงาน</h1>
 
   {#if loading}
-    <div class=" inset-0 flex items-center justify-center bg-transperent z-50">
-      <div class="relative">
-        <div class="w-16 h-16 border-2 border-slate-200 border-t-slate-600 rounded-full animate-spin"></div>
-        <p class="mt-4 text-sm text-slate-600 text-center">กำลังโหลด...</p>
-      </div>
+    <div class="flex justify-center my-12">
+      <Loading />
     </div>
   {:else if error}
     <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6">
@@ -468,12 +465,3 @@
     </div>
   {/if}
 </div>
-
-<style>
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-  .animate-spin {
-    animation: spin 1s linear infinite;
-  }
-</style>
