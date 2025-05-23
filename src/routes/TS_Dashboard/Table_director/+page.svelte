@@ -2,7 +2,8 @@
     import { onMount } from "svelte";
     import { collection, getDocs } from "firebase/firestore";
     import { db } from "$lib/firebase";
-
+    import { goToProject_Details } from "$lib/NavigateWithToken";
+    import Loading from "$lib/components/loading.svelte";
     let projects = [];
     let filteredProjects = [];
     let loading = true; // Start with loading true
@@ -18,7 +19,7 @@
             loading = true;
 
             // 1. Fetch form data to get the fixed term
-            const formRes = await fetch(`../../api/form-data`);
+            const formRes = await fetch(`/api/form-data?isOpen=true`);
             if (!formRes.ok) {
                 const formDataError = await formRes.json();
                 throw new Error(formDataError.error || "ไม่สามารถโหลดข้อมูลฟอร์มสำหรับภาคการศึกษาได้");
@@ -30,9 +31,15 @@
                 fixedTerm = openForm.term;
 
                 // 2. Fetch all projects from Firestore
-                const projectsCollection = collection(db, "project-approve");
-                const projectSnapshot = await getDocs(projectsCollection);
-                let allFetchedProjects = projectSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+                const project_data = await fetch(`/api/project-data?term=${fixedTerm}`, {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Cache-Control": "max-age=60",
+                    },
+                });
+                let allFetchedProjects = await project_data.json()
+                allFetchedProjects = allFetchedProjects.data;
 
                 // 3. Filter these projects by the fixedTerm
                 projects = allFetchedProjects.filter(p => p.term === fixedTerm);
@@ -128,9 +135,7 @@
     <h1 class="text-2xl font-bold mb-6">ข้อมูลโครงงาน</h1>
 
     {#if loading}
-        <div class="flex justify-center my-12">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-        </div>
+        <Loading />
     {:else if error}
         <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6">
             <p>{error}</p>
@@ -194,7 +199,7 @@
                                 {#each filteredProjects as project (project.id)}
                                     <tr class="hover:bg-gray-50">
                                         <td class="px-6 py-4">
-                                            <div class="text-sm text-gray-900">{project.project_name_th || 'ไม่ระบุชื่อโครงงาน'}</div>
+                                            <div class="text-sm text-blue-600 hover:underline cursor-pointer" on:click={() => goToProject_Details(project.id)}>{project.project_name_th}</div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <div class="text-sm text-gray-900">{project.directorCount}</div>

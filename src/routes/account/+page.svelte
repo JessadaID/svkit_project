@@ -6,7 +6,7 @@
     import { doc, getDoc, updateDoc } from 'firebase/firestore'; // Added missing updateDoc import
     import { onAuthStateChanged } from 'firebase/auth';
   import { successToast } from '$lib/customtoast';
-  import Loading from '$lib/loading.svelte';
+  import Loading from '$lib/components/loading.svelte';
     // User data state
     let user = {
       name: '',

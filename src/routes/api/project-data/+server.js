@@ -1,7 +1,6 @@
 // src/routes/api/project-data/+server.js
 import {  json } from "@sveltejs/kit";
-import { db } from "$lib/firebase";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { adminDb } from "$lib/server/firebase"; 
 
 // ฟังก์ชันสำหรับ format ข้อมูลให้อยู่ในรูปแบบที่ต้องการ (ลดการทำซ้ำ)
 function formatDocData(doc) {
@@ -21,40 +20,57 @@ function formatDocData(doc) {
 
 // GET: ดึงข้อมูลโปรเจคทั้งหมด
 export async function GET({ url }) {
+  if (!adminDb) {
+    console.error("Firebase Admin DB not initialized. Ensure $lib/server/firebaseAdmin.js is set up correctly.");
+    return json({ error: "Server configuration error: Firebase Admin not available." }, { status: 500 });
+  }
+
   try {
     // เพิ่มการกรองด้วย query parameters (เช่น ?term=2023)
     const term = url.searchParams.get("term");
     const status = url.searchParams.get("status");
     const email = url.searchParams.get("email");
 
-    const projectCollection = collection(db, "project-approve");
-    let projectQuery = projectCollection;
+    const projectCollectionRef = adminDb.collection("project-approve");
+    let queryRef = projectCollectionRef; // Base query reference for Admin SDK
 
-    // สร้าง query ตามเงื่อนไขที่ส่งมา
+    // Fields to select based on formatDocData function
+    // This reduces the amount of data fetched from Firestore.
+    const fieldsToSelect = [
+      'project_name_th',
+      'project_name_en',
+      'status',
+      'members',
+      'Tasks',
+      'term',
+      'adviser',
+      'directors'
+    ];
+
     if (term) {
-      projectQuery = query(projectQuery, where("term", "==", term));
+      queryRef = queryRef.where("term", "==", term);
     }
-
     if (status) {
-      projectQuery = query(projectQuery, where("status", "==", status));
+      queryRef = queryRef.where("status", "==", status);
     }
     if (email) {
-      projectQuery = query(projectQuery, where("email", "==", email));
+      // Ensure an index exists in Firestore for this query if combining with other filters.
+      queryRef = queryRef.where("email", "==", email);
     }
 
-
-    const snapshot = await getDocs(projectQuery);
+    // Apply select() to the query and then get the documents
+    const snapshot = await queryRef.select(...fieldsToSelect).get();
     
     if (snapshot.empty) {
       return json({ data: [] }, { status: 200 });
     }
 
     const data = snapshot.docs.map(formatDocData);
-    //console.log("data", data);
 
     return json({ data }, { status: 200 });
   } catch (error) {
     console.error("Error fetching projects:", error);
-    return json({ error: "Failed to fetch project data" }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch project data";
+    return json({ error: errorMessage }, { status: 500 });
   }
 }

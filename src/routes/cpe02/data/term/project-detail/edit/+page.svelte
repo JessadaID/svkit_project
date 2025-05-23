@@ -12,7 +12,7 @@
     uploadBytes,
     getDownloadURL,
   } from "firebase/storage";
-  import Loading from "$lib/loading.svelte";
+  import Loading from "$lib/components/loading.svelte";
   import { warningToast, successToast, dangerToast } from "$lib/customtoast";
   import { page } from "$app/stores";
   import { verifyJWT, createJWT } from "$lib/jwt.ts";

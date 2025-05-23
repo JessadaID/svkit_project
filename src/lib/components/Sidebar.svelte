@@ -2,85 +2,121 @@
 <script>
 	import { goto } from '$app/navigation';
 	import { slide } from 'svelte/transition';
-	// import { createEventDispatcher } from 'svelte'; // Keep if you might add events later
 
-	let selectedItemId = ''; // Renamed from menuList for clarity and consistency
+	let selectedItemId = '';
 
 	// --- State ---
-	let isOpen = true; // Sidebar starts open by default
+	let isOpen = true;
 
-	// Hardcoded menu items (Consider making this dynamic via props or context if roles are needed)
+	// Menu items
 	export let menuItems = [];
-	// const dispatch = createEventDispatcher();
-
+	export let title = '';
 	// --- Functions ---
 	function toggleSidebar() {
 		isOpen = !isOpen;
 	}
 
-	// Select URL and navigate
-	function selectMenuItem(item) {
-		selectedItemId = item.id; // Update the state IF you want the sidebar to manage it internally
-		// If the parent manages selectedItemId via bind:selectedItemId, just navigate
-		goto(`/TS_Dashboard/${item.id}`); // Assuming base path is /TS_Dashboard/
-
+	function selectMenuItem(item ) {
+		selectedItemId = item.id;
+		goto(`/TS_Dashboard/${item.id}`);
 	}
-
 </script>
 
 <!-- Sidebar Container -->
-<!-- Using a slightly darker gray and ensuring full height -->
-<div class={`transition-all duration-300 ease-in-out ${isOpen ? 'w-64' : 'w-20'} bg-gradient-to-b from-gray-800 to-gray-900 text-gray-100 relative flex flex-col h-full shadow-lg`}>
+<div class={`
+	transition-all duration-300 ease-out
+	${isOpen ? 'w-64' : 'w-16'} 
+	bg-white/95 backdrop-blur-sm
+	text-gray-800 
+	relative flex flex-col h-full 
+	border-r border-gray-200/60
+	shadow-xl shadow-gray-100/50
+`}>
+	<!-- Header Section -->
+	{#if isOpen}
+		<div class="px-6 py-5 border-b border-gray-100" transition:slide={{ duration: 200 }}>
+			<h2 class="text-lg font-semibold text-gray-900">{title}</h2>
+			<p class="text-sm text-gray-500 mt-1">Navigation Menu</p>
+		</div>
+	{/if}
+
 	<!-- Toggle Button -->
-	<!-- Improved styling: slightly inset, better hover/focus -->
 	<button
-		class="absolute -right-3 top-9 z-20 p-1.5 rounded-full bg-gray-700 text-white hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-indigo-500 transition-colors duration-200"
+		class="
+			absolute -right-3 top-6 z-20 
+			w-6 h-6 
+			bg-white 
+			border border-gray-200
+			text-gray-600 
+			hover:text-gray-900 hover:bg-gray-50
+			focus:outline-none focus:ring-2 focus:ring-blue-500/20
+			transition-all duration-200
+			shadow-md hover:shadow-lg
+			flex items-center justify-center
+		"
 		on:click={toggleSidebar}
 		aria-label={isOpen ? 'Close sidebar' : 'Open sidebar'}
 	>
 		{#if isOpen}
 			<!-- Chevron Left -->
-			<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-				<path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+			<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
 			</svg>
 		{:else}
 			<!-- Chevron Right -->
-			<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-				<path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+			<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 			</svg>
 		{/if}
 	</button>
 
 	<!-- Sidebar Content -->
-	<!-- Increased top padding, added bottom padding -->
-	<div class="flex-grow overflow-y-auto overflow-x-hidden pt-16 pb-4 px-4">
+	<div class="flex-grow overflow-y-auto overflow-x-hidden px-4 py-6">
 		<nav class="space-y-2">
 			{#each menuItems as item (item.id)}
 				{@const isActive = selectedItemId === item.id}
 				<button
-					class={`w-full flex items-center p-3 rounded-lg transition-colors duration-200 group font-medium
+					class={`
+						w-full flex items-center 
+						${isOpen ? 'px-4 py-3' : 'px-2 py-3 justify-center'}
+						
+						transition-all duration-200 
+						group font-medium text-sm
+						relative overflow-hidden
 						${isActive
-							? 'bg-indigo-600 text-white shadow-md'
-							: 'text-gray-300 hover:bg-gray-700 hover:text-white focus:outline-none focus:bg-gray-700 focus:text-white'}
-						${!isOpen ? 'justify-center' : ''}`
-					}
+							? 'bg-blue-50 text-blue-700 shadow-sm border border-blue-100'
+							: 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}
+					`}
 					on:click={() => selectMenuItem(item)}
 					aria-current={isActive ? 'page' : undefined}
 				>
-					<!-- Icon Styling: Consistent size, slight adjustment on hover -->
-					<span class={`flex-shrink-0 w-6 h-6 flex items-center justify-center transition-transform duration-200 ease-in-out ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-white group-focus:text-white'}`}>
+					<!-- Active indicator -->
+					{#if isActive}
+						<div class="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 "></div>
+					{/if}
+
+					<!-- Icon -->
+					<span class={`
+						flex-shrink-0 w-5 h-5 
+						flex items-center justify-center 
+						transition-all duration-200
+						${isActive ? 'text-blue-600' : 'text-gray-500 group-hover:text-gray-700'}
+					`}>
 						{@html item.icon}
 					</span>
 
-					<!-- Label Styling: Smooth slide transition, nowrap -->
+					<!-- Label -->
 					{#if isOpen}
 						<span
 							transition:slide={{ duration: 200, axis: 'x' }}
-							class="ml-3 whitespace-nowrap flex-grow text-left"
+							class="ml-3 whitespace-nowrap flex-grow text-left font-medium"
 						>
 							{item.label}
 						</span>
 					{/if}
+
+					<!-- Hover effect -->
+					<div class="absolute inset-0 bg-gradient-to-r from-transparent to-transparent group-hover:from-blue-50/50 group-hover:to-transparent rounded-xl transition-all duration-300 opacity-0 group-hover:opacity-100"></div>
 				</button>
 			{/each}
 		</nav>
@@ -89,27 +125,34 @@
 </div>
 
 <style>
-	/* Optional: Add global styles or overrides here if needed */
-	/* Ensure icons render correctly if SVGs have fixed sizes */
-	.icon {
-		display: inline-block;
-		vertical-align: middle;
-        width: 100%; /* Ensure SVG takes container width */
-        height: 100%; /* Ensure SVG takes container height */
+	/* Custom scrollbar styling */
+	:global(.sidebar-scroll::-webkit-scrollbar) {
+		width: 4px;
+	}
+	
+	:global(.sidebar-scroll::-webkit-scrollbar-track) {
+		background: transparent;
+	}
+	
+	:global(.sidebar-scroll::-webkit-scrollbar-thumb) {
+		background-color: rgba(156, 163, 175, 0.3);
+		border-radius: 2px;
+	}
+	
+	:global(.sidebar-scroll::-webkit-scrollbar-thumb:hover) {
+		background-color: rgba(107, 114, 128, 0.5);
 	}
 
-    /* Improve scrollbar appearance (optional, browser-specific) */
-    ::-webkit-scrollbar {
-        width: 6px;
-    }
-    ::-webkit-scrollbar-track {
-        background: transparent;
-    }
-    ::-webkit-scrollbar-thumb {
-        background-color: rgba(156, 163, 175, 0.4); /* gray-400 with opacity */
-        border-radius: 3px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-        background-color: rgba(107, 114, 128, 0.6); /* gray-500 with opacity */
-    }
+	/* Icon sizing */
+	:global(.sidebar-icon svg) {
+		width: 100%;
+		height: 100%;
+	}
+
+	/* Backdrop blur support */
+	@supports (backdrop-filter: blur(8px)) {
+		.backdrop-blur-sm {
+			backdrop-filter: blur(8px);
+		}
+	}
 </style>

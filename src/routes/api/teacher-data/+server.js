@@ -1,48 +1,58 @@
 // src/routes/api/teacher-data/+server.js
-import { db } from "$lib/firebase";
-import { collection, getDocs, query, where } from "firebase/firestore"; // Corrected import order
+import { json } from '@sveltejs/kit';
+import { adminDb } from '$lib/server/firebase'; // Import Firebase Admin instance
 
 export async function GET({url}) {
+  if (!adminDb) {
+    console.error("Firebase Admin DB not initialized. Ensure $lib/server/firebase.js (or similar) is set up correctly.");
+    return json({ error: "Server configuration error: Firebase Admin not available." }, { status: 500 });
+  }
+
   try {
     const approval = url.searchParams.get('approval'); // ดึง approval ถ้ามี
-    //console.log('Approval:', approval); // Log the approval value for debugging
-    let q;
-    const dataCollection = collection(db, "users");    
+
+    const usersCollectionRef = adminDb.collection("users");
+    let queryRef = usersCollectionRef;
+
+    // Fields to select based on the data transformation
+    const fieldsToSelect = [
+      'email',
+      'role',
+      'name',
+      'Approval'
+      // Add any other fields you might need from the user document
+    ];
+
+    // Always filter by role
+    queryRef = queryRef.where("role", "in", ["teacher", "subject_teacher"]);
+
     if (approval) {
-      q = query(dataCollection, where("role", "in", ["teacher", "subject_teacher"]), where("Approval", "==", false));
-    } else {
-      q = query(dataCollection, where("role", "in", ["teacher", "subject_teacher"]));
+      queryRef = queryRef.where("Approval", "==", false);
     }
 
-    // --- END MODIFIED LINE ---
+    // Execute the query with select
+    const snapshot = await queryRef.select(...fieldsToSelect).get();
 
-    // Execute the query
-    const snapshot = await getDocs(q);
+    if (snapshot.empty) {
+      return json({ data: [] }, { status: 200 });
+    }
 
     // Map the results
     const data = snapshot.docs.map(doc => {
       const docData = doc.data();
       return {
         id: doc.id,
-        email: docData?.email || '',
-        role: docData?.role || '',
-        name: docData?.name || '',
-        Approval: docData?.Approval || false,
+        email: docData.email || '', // Fields from select are guaranteed to exist if docData is not null
+        role: docData.role || '',
+        name: docData.name || '',
+        Approval: typeof docData.Approval === 'boolean' ? docData.Approval : false,
         // Add any other fields you might need from the user document
       };
     });
-    //console.log('Data:', data); // Log the data for debugging
-    return new Response(JSON.stringify({ data }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
-
+    return json({ data }, { status: 200 });
   } catch (error) {
     console.error('Error processing GET request:', error); // Updated error message context
-    // Removed SyntaxError check as it's less relevant for GET requests without bodies
-    return new Response(JSON.stringify({ error: 'Failed to process request' }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    const errorMessage = error instanceof Error ? error.message : "Failed to process request";
+    return json({ error: errorMessage }, { status: 500 });
   }
 }

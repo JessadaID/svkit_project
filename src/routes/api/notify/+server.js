@@ -1,12 +1,10 @@
 import { json } from "@sveltejs/kit";
-import { adminDb , admin} from "$lib/server/firebase";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { adminDb, admin } from "$lib/server/firebase";
 
 export async function POST({ request }) {
   try {
     const body = await request.json();
     const { title, messageBody, userId } = body;
-    //console.log("body", messageBody);
 
     if (!title || !messageBody) {
       return json(
@@ -18,22 +16,21 @@ export async function POST({ request }) {
     let tokens = [];
 
     if (userId) {
-      // ส่งไปยังผู้ใช้ที่ระบุ
-      const userTokensRef = adminDb
-        .collection("users")
-        .doc(userId)
-        .collection("fcmTokens");
-      const snapshot = await userTokensRef.get();
-      tokens = snapshot.docs.map((doc) => doc.data().token);
-    } else {
-      // ส่งไปยังทุกคน (ดึง tokens ทั้งหมดจาก users)
-      const usersRef = adminDb.collection("users");
-      const usersSnapshot = await usersRef.get();
+      // ส่งเฉพาะผู้ใช้คนเดียว
+      const userDoc = await adminDb.collection("users").doc(userId).get();
+      const userData = userDoc.data();
 
-      for (const userDoc of usersSnapshot.docs) {
-        const fcmTokensRef = userDoc.ref.collection("fcmTokens");
-        const tokensSnapshot = await fcmTokensRef.get();
-        tokens.push(...tokensSnapshot.docs.map((doc) => doc.data().token));
+      if (userDoc.exists && userData?.fcmToken) {
+        tokens.push(userData.fcmToken);
+      }
+    } else {
+      // ส่งหาทุกคน
+      const usersSnapshot = await adminDb.collection("users").get();
+      for (const doc of usersSnapshot.docs) {
+        const data = doc.data();
+        if (data.fcmToken) {
+          tokens.push(data.fcmToken);
+        }
       }
     }
 
@@ -42,14 +39,19 @@ export async function POST({ request }) {
         notification: { title, body: messageBody },
         tokens,
       };
+
       const response = await admin.messaging().sendEachForMulticast(message);
-      console.log(response.successCount + " messages were sent successfully");
+      console.log(`${response.successCount} messages were sent successfully`);
       return json({ success: true, response }, { status: 200 });
     } else {
       return json({ success: false, message: "No tokens found" }, { status: 200 });
     }
+
   } catch (error) {
     console.error("Error sending notification:", error);
-    return json({ error: "Failed to send notification", details: error.message }, { status: 500 });
+    return json({
+      error: "Failed to send notification",
+      details: error.message,
+    }, { status: 500 });
   }
 }
