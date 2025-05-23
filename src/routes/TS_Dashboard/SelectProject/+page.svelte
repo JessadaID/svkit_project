@@ -10,6 +10,7 @@
   import { dangerToast, successToast, warningToast } from "$lib/customtoast";
   import { getCookie } from "cookies-next";
   import Loading from "$lib/components/Loading.svelte";
+  
   // Initialize Firestore from your firebase config
   //const auth = getAuth();
 
