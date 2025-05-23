@@ -4,6 +4,7 @@
   import { db } from '$lib/firebase';
   import { collection, getDocs, query, where, getCountFromServer, orderBy, limit } from 'firebase/firestore';
   import { goto } from '$app/navigation'; // For quick links
+  import Loading from '$lib/components/loading.svelte';
 
   let projectStats = {
     total: 0,
@@ -111,10 +112,7 @@
   <h1 class="text-3xl font-bold text-gray-800">ภาพรวมระบบ</h1>
 
   {#if isLoading}
-    <div class="flex justify-center items-center h-32">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      <p class="ml-3 text-gray-600">กำลังโหลดข้อมูลสถิติ...</p>
-    </div>
+    <Loading />
   {:else}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6">
       <!-- Total Projects Card -->

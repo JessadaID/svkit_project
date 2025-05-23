@@ -15,7 +15,7 @@
     import { db, storage } from "$lib/firebase.js";
     import { checkAuthStatus } from "$lib/auth"; // Assuming this returns user info or null
     import { dangerToast, successToast, warningToast } from "$lib/customtoast";
-    import Loading from "$lib/loading.svelte";
+    import Loading from "$lib/components/loading.svelte";
     import { getCookie } from 'cookies-next';
     import Process from "./Process.svelte"; // Adjust the import path as necessary
     import { verifyJWT ,createJWT } from "$lib/jwt"; // Adjust the import path as necessary
@@ -36,6 +36,11 @@
     let selectedImage = null;
     let projectId = null;
     let showTask = false; // Control visibility of task section
+
+    // New state variables for clarity within the right panel
+    let shouldShowProcessComponent = false;
+    let canViewDirectorScores = false;
+    let activeTaskView = ''; // 'process' or 'scores', determines which view is active in the right panel
 
     // Function to open image modal
     function openImageModal(image) {
@@ -113,37 +118,51 @@
   
           can_edit = role === 'admin' || (userEmail && project.email === userEmail);
   
-          const isAdvisor = project.adviser && project.adviser.some(adv => adv.email === userEmail);
           // Determine if the user can edit tasks (admin or advisor for this project)
+          const isAdvisor = project.adviser && project.adviser.some(adv => adv.email === userEmail);
           can_edit_tasks = role === 'admin' || isAdvisor;
-          showTask = can_edit_tasks || project.email === userEmail; // Show task section if user can edit tasks
-          //console.log(showTask);
-          // Fetch related Tasks for the term
-          if (showTask){
-            const taskQuery = query(
-            collection(db, "Task"),
-            where("term", "==", project.term)
+
+          // Determine if the Process component (term tasks) should be shown and its data loaded
+          shouldShowProcessComponent = can_edit_tasks || project.email === userEmail;
+
+          // Determine if the Director Scores section should be shown
+          const hasDirectorData = project.directors && Array.isArray(project.directors) && project.directors.length > 0;
+          canViewDirectorScores = hasDirectorData && (
+            role === 'admin' ||
+            project.email === userEmail ||
+            (userEmail && project.directors.some(d => d.email === userEmail))
           );
-          const querySnapshot = await getDocs(taskQuery);
-          termTasks = querySnapshot.docs
-            .map((doc) => ({ id: doc.id, ...doc.data() }))
-            .sort((a, b) => a.index - b.index);
-  
-          // Initialize visibility states for Process component
-          visibleStates = Array(termTasks.length).fill(false);
+          
+          // Overall visibility of the right-hand column
+          showTask = shouldShowProcessComponent || canViewDirectorScores; 
 
-          // Initialize status and comment arrays based on fetched tasks and project data
-          status = termTasks.map((_, index) => project.Tasks?.[index]?.status || "");
-          comment = termTasks.map((_, index) => project.Tasks?.[index]?.comment || "");
+          if (shouldShowProcessComponent){
+            const taskQuery = query(
+              collection(db, "Task"),
+              where("term", "==", project.term)
+            );
+            const querySnapshot = await getDocs(taskQuery);
+            termTasks = querySnapshot.docs
+              .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
+              .sort((a, b) => a.index - b.index);
+    
+            // Initialize visibility states for Process component
+            visibleStates = Array(termTasks.length).fill(false);
 
-          // Ensure arrays have the correct length (should match termTasks.length)
-          // This might be redundant now but kept for safety
-          status.length = termTasks.length;
-          comment.length = termTasks.length;
+            // Initialize status and comment arrays based on fetched tasks and project data
+            status = termTasks.map((_, index) => project.Tasks?.[index]?.status || "");
+            comment = termTasks.map((_, index) => project.Tasks?.[index]?.comment || "");
           } else {
             // If not showing tasks, ensure status and comment are empty
             status = [];
             comment = [];
+          }
+
+          // Set the default active view for the right panel
+          if (shouldShowProcessComponent) {
+            activeTaskView = 'process';
+          } else if (canViewDirectorScores) {
+            activeTaskView = 'scores';
           }
           
   
@@ -430,25 +449,145 @@
         </div>
         
         {#if showTask}
-<!-- Right Column: Process Component with Fixed Sticky Positioning -->
-          <div class="md:w-5/12 lg:w-4/12 rou">
-            <!-- The parent div needs height to make sticky work -->
+          <!-- Right Column: Process Component and/or Director Scores with Fixed Sticky Positioning -->
+          <div class="md:w-5/12 lg:w-4/12">
             <div class="sticky top-20 max-h-[calc(100vh-120px)] overflow-y-auto">
-                <div class="bg-white shadow-lg rounded-lg p-6">
-                    <h2 class="text-xl font-semibold text-gray-800 mb-4">สถานะและการดำเนินการ</h2>
-                    <Process
-                        {project}
-                        isLoading={false} 
-                        can_edit_task={can_edit_tasks} 
-                        Task={termTasks} 
-                        isLoadingtext={false} 
-                        {visibleStates}
-                        {status}
-                        {projectId}
-                        {comment}
-                        {role}
-                    />
+              {#if shouldShowProcessComponent && canViewDirectorScores}
+                <!-- Both views available, show tabs -->
+                <div class="bg-white shadow-lg rounded-lg">
+                  <div class="px-6 pt-6 pb-0">
+                    <div class="flex border-b border-gray-200">
+                      <button
+                        on:click={() => activeTaskView = 'process'}
+                        class="py-3 px-4 -mb-px font-medium text-sm focus:outline-none whitespace-nowrap {activeTaskView === 'process' ? 'border-b-2 border-indigo-500 text-indigo-600' : 'text-gray-500 hover:text-indigo-500 border-b-2 border-transparent hover:border-gray-300'}"
+                      >
+                        สถานะและการดำเนินการ
+                      </button>
+                      <button
+                        on:click={() => activeTaskView = 'scores'}
+                        class="py-3 px-4 -mb-px font-medium text-sm focus:outline-none whitespace-nowrap {activeTaskView === 'scores' ? 'border-b-2 border-indigo-500 text-indigo-600' : 'text-gray-500 hover:text-indigo-500 border-b-2 border-transparent hover:border-gray-300'}"
+                      >
+                        คะแนนจากกรรมการ
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="p-6">
+                    {#if activeTaskView === 'process'}
+                      <Process
+                          {project}
+                          isLoading={false} 
+                          can_edit_task={can_edit_tasks} 
+                          Task={termTasks} 
+                          isLoadingtext={false} 
+                          {visibleStates}
+                          {status}
+                          {projectId}
+                          {comment}
+                          {role}
+                      />
+                    {:else if activeTaskView === 'scores'}
+                      {#if project.directors && project.directors.length > 0}
+                        <ul class="space-y-3">
+                            {#each project.directors as director (director.email)}
+                                <li class="p-3 bg-gray-50 rounded-md border border-gray-200">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <span class="font-medium text-gray-700">{director.name || director.email}</span>
+                                        {#if director.score !== undefined && director.score !== null}
+                                            <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-green-100 text-green-700">
+                                                ให้คะแนนแล้ว: {director.score} / {project.max_score || 100}
+                                            </span>
+                                        {:else}
+                                            <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700">
+                                                ยังไม่ได้ให้คะแนน
+                                            </span>
+                                        {/if}
+                                    </div>
+                                    {#if director.comments && director.comments.trim() !== ""}
+                                        <p class="text-sm text-gray-600 mt-1 pl-2 border-l-2 border-gray-300">
+                                            <span class="font-medium">ความเห็น:</span> {director.comments}
+                                        </p>
+                                    {/if}
+                                    {#if director.ratedAt}
+                                        <p class="text-xs text-gray-500 mt-1 text-right">
+                                            เมื่อ: {new Date(director.ratedAt).toLocaleString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                        </p>
+                                    {/if}
+                                </li>
+                            {/each}
+                        </ul>
+                        {@const ratedDirectors = project.directors.filter(d => d.score !== undefined && d.score !== null)}
+                        {#if ratedDirectors.length > 0}
+                            {@const totalScore = ratedDirectors.reduce((sum, d) => sum + Number(d.score), 0)}
+                            {@const averageScore = totalScore / ratedDirectors.length}
+                            <div class="mt-4 pt-4 border-t border-gray-200">
+                                <p class="text-md font-semibold text-gray-700">
+                                    คะแนนเฉลี่ย: {averageScore.toFixed(2)} / {project.max_score || 100}
+                                    <span class="text-sm text-gray-500"> (จากกรรมการ {ratedDirectors.length} ท่าน)</span>
+                                </p>
+                            </div>
+                        {/if}
+                      {:else}
+                          <p class="text-sm text-gray-500">ยังไม่มีข้อมูลกรรมการสำหรับโครงงานนี้</p>
+                      {/if}
+                    {/if}
+                  </div>
                 </div>
+              {:else if shouldShowProcessComponent}
+                <!-- Only Process component -->
+                  <div class="bg-white shadow-lg rounded-lg p-6">
+                      <h2 class="text-xl font-semibold text-gray-800 mb-4">สถานะและการดำเนินการ</h2>
+                      <Process {project} isLoading={false} can_edit_task={can_edit_tasks} Task={termTasks} isLoadingtext={false} {visibleStates} {status} {projectId} {comment} {role} />
+                  </div>
+              {:else if canViewDirectorScores}
+                <!-- Only Director scores -->
+                  <div class="bg-white shadow-lg rounded-lg p-6">
+                      <h2 class="text-xl font-semibold text-gray-800 mb-4">คะแนนจากกรรมการ</h2>
+                      {#if project.directors && project.directors.length > 0}
+                          <ul class="space-y-3">
+                              {#each project.directors as director (director.email)}
+                                  <li class="p-3 bg-gray-50 rounded-md border border-gray-200">
+                                      <div class="flex justify-between items-center mb-1">
+                                          <span class="font-medium text-gray-700">{director.name || director.email}</span>
+                                          {#if director.score !== undefined && director.score !== null}
+                                              <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-green-100 text-green-700">
+                                                  ให้คะแนนแล้ว: {director.score} / {project.max_score || 100}
+                                              </span>
+                                          {:else}
+                                              <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700">
+                                                  ยังไม่ได้ให้คะแนน
+                                              </span>
+                                          {/if}
+                                      </div>
+                                      {#if director.comments && director.comments.trim() !== ""}
+                                          <p class="text-sm text-gray-600 mt-1 pl-2 border-l-2 border-gray-300">
+                                              <span class="font-medium">ความเห็น:</span> {director.comments}
+                                          </p>
+                                      {/if}
+                                      {#if director.ratedAt}
+                                          <p class="text-xs text-gray-500 mt-1 text-right">
+                                              เมื่อ: {new Date(director.ratedAt).toLocaleString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                          </p>
+                                      {/if}
+                                  </li>
+                              {/each}
+                          </ul>
+                          {@const ratedDirectors = project.directors.filter(d => d.score !== undefined && d.score !== null)}
+                          {#if ratedDirectors.length > 0}
+                              {@const totalScore = ratedDirectors.reduce((sum, d) => sum + Number(d.score), 0)}
+                              {@const averageScore = totalScore / ratedDirectors.length}
+                              <div class="mt-4 pt-4 border-t border-gray-200">
+                                  <p class="text-md font-semibold text-gray-700">
+                                      คะแนนเฉลี่ย: {averageScore.toFixed(2)} / {project.max_score || 100}
+                                      <span class="text-sm text-gray-500"> (จากกรรมการ {ratedDirectors.length} ท่าน)</span>
+                                  </p>
+                              </div>
+                          {/if}
+                      {:else}
+                          <p class="text-sm text-gray-500">ยังไม่มีข้อมูลกรรมการสำหรับโครงงานนี้</p>
+                      {/if}
+                  </div>
+              {/if}
             </div>
           </div>
           {/if}

@@ -1,19 +1,10 @@
 <script>
-    import {
-      collection,
-      deleteDoc,
-      updateDoc,
-      getDocs,
-      doc,
-      query,
-       where,
-      addDoc
-    } from "firebase/firestore";
-    import { db } from "$lib/firebase";
     import { onMount } from "svelte";
     import ConfirmModal from '$lib/components/ConfirmModal.svelte';
-  
+    import { dangerToast, successToast } from "$lib/customtoast";
+
     // Variables
+    let terms = [];
     let term = "";
     let projects = [];
     let selectedProject = null; // ตัวแปรสำหรับเก็บโปรเจกต์ที่ถูกเลือก
@@ -31,22 +22,15 @@
   
     async function fetchProjects() {
     if (term) {
-      const projectsRef = collection(db, "Task");
-  
-      // สร้าง query ที่กรองตาม term และเรียงตาม index
-      const q = query(
-        projectsRef,
-        where("term", "==", term)     // เรียงตาม index
-      );
-  
       try {
-        const querySnapshot = await getDocs(q);
-  
-        projects = [];
-        querySnapshot.forEach((doc) => {
-          projects.push({ id: doc.id, ...doc.data() });
+        const task_respond = await fetch("/api/tasks-data?term=" + term, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
         });
-  
+        const task_data = await task_respond.json();
+        projects = task_data.data;
         projects.sort((a, b) => a.index - b.index);
   
         projectCount = projects.length; // นับจำนวนโปรเจกต์ทั้งหมด
@@ -68,18 +52,35 @@
     async function confirmDeleteProject() {
       if (!projectToDelete) return;
 
-      const projectRef = doc(db, "Task", projectToDelete.id);
-      isLoading = true;
+      
+
       try {
-        await deleteDoc(projectRef);
-        alert("ลบงานสำเร็จ");
+        isLoading = true;
+        const Delete_Task = await fetch("/api/tasks-data", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: projectToDelete.id,
+        }),
+      });
+
+      const Delete_Task_data = await Delete_Task.json();
+        if (!Delete_Task.ok) {
+          dangerToast("ไม่สามารถลบข้อมูลได้ : " + Delete_Task_data.error);
+          throw new Error(Delete_Task_data.error || "Failed to delete task");
+        }else{
+          successToast("ลบงานสำเร็จ");
+        }
         fetchProjects(); // รีเฟรชข้อมูล
+
         if (selectedProject && selectedProject.id === projectToDelete.id) {
           resetForm(); // ถ้างานที่กำลังแก้ไขถูกลบ ให้รีเซ็ตฟอร์ม
         }
       } catch (error) {
         console.error("Error deleting document: ", error);
-        alert("เกิดข้อผิดพลาดในการลบข้อมูล");
+        dangerToast("เกิดข้อผิดพลาดในการลบข้อมูล");
       } finally {
         isLoading = false;
         projectToDelete = null; // เคลียร์ค่าหลังจากดำเนินการ
@@ -105,24 +106,49 @@
       try {
       if (selectedProject) {
         // หากเลือกโปรเจกต์แล้วให้ทำการอัปเดต
-        const projectRef = doc(db, 'Task', selectedProject.id);
-        await updateDoc(projectRef, {
-          title,
-          description,
-          dueDate,
+        const Edit_Task = await fetch("/api/tasks-data", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id: selectedProject.id,
+            title,
+            description,
+            dueDate,
+            index: projectCount,
+            term,
+          }),
         });
-        alert("แก้ไขข้อมูลงานสำเร็จ");
+        const Edit_Task_data = await Edit_Task.json();
+        if (!Edit_Task.ok) {
+          dangerToast("ไม่สามารถแก้ไขข้อมูลได้ : " + Edit_Task_data.error);
+          throw new Error(Edit_Task_data.error || "Failed to update task");
+        }else{
+          successToast("แก้ไขข้อมูลงานสำเร็จ");
+        }
       } else {
         // หากไม่ได้เลือกโปรเจกต์ ให้เพิ่มข้อมูลใหม่ (ใช้ auto ID)
-        const projectsRef = collection(db, 'Task');
-        const newProjectRef = await addDoc(projectsRef, {
-          title,
-          description,
-          dueDate,
-          index: projectCount ,
-          term,
+        const Add_Task = await fetch("/api/tasks-data", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            title,
+            description,
+            dueDate,
+            index: projectCount ,
+            term,
+          }),
         });
-        alert("เพิ่มงานใหม่สำเร็จ");
+        const Add_Task_data = await Add_Task.json();
+        if (!Add_Task.ok) {
+          dangerToast("ไม่สามารถเพิ่มข้อมูลได้ : " + Add_Task_data.error);
+          throw new Error(Add_Task_data.error || "Failed to add task");
+        }else{
+          successToast("เพิ่มงานใหม่สำเร็จ");
+        }
       }
     } catch (error) {
       console.error("Error saving project: ", error);
@@ -137,7 +163,6 @@
   }
     // Load initial data (optional, if you want to load data on page load)
     onMount(() => {
-      // Optionally, fetch projects for a default term
       fetchProjects();
     });
   
@@ -158,16 +183,27 @@
       isEditing = false; // รีเซ็ตเป็นโหมดเพิ่มงาน
     }
   
-      let terms = [];
   
       async function fetchTerms() {
-          const termsRef = collection(db, "forms");
           try {
-              const querySnapshot = await getDocs(termsRef);
-              terms = querySnapshot.docs.map(doc => doc.data().term);
+            isLoading = true; // ตั้งค่าสถานะโหลดเป็น true
+            const forms_data = await fetch("/api/form-data", {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            })
+            const forms_data_response = await forms_data.json();
+            terms = forms_data_response.data;
+            if (!forms_data.ok) {
+              dangerToast("ไม่สามารถดึงข้อมูลเทอมได้ : " + forms_data_response.error);
+              throw new Error(forms_data_response.error || "Failed to fetch terms");
+            }
           } catch (error) {
               console.error("Error fetching terms: ", error);
               alert("เกิดข้อผิดพลาดในการดึงข้อมูลเทอม");
+          } finally {
+              isLoading = false; // ตั้งค่าสถานะโหลดเป็น false
           }
       }
   
@@ -188,7 +224,7 @@
       >
           <option value="" disabled selected>-- กรุณาเลือกภาคการศึกษา --</option>
           {#each terms as termOption}
-              <option value={termOption}>{termOption}</option>
+              <option value={termOption.term}>{termOption.term}</option>
           {/each}
       </select>
     </div>

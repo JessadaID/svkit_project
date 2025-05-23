@@ -5,10 +5,11 @@
     getDoc,
     updateDoc,
   } from "firebase/firestore";
-  import { getAuth } from "firebase/auth";
   import { db } from "$lib/firebase";
+  import { goToProject_Details } from "$lib/NavigateWithToken";
   import { dangerToast, successToast, warningToast } from "$lib/customtoast";
   import { getCookie } from "cookies-next";
+  import Loading from "$lib/components/loading.svelte";  
   // Initialize Firestore from your firebase config
   //const auth = getAuth();
 
@@ -283,9 +284,7 @@
 
   {#if loading}
     <div class="flex justify-center my-12">
-      <div
-        class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"
-      ></div>
+      <Loading />
     </div>
   {:else if error}
     <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6">
@@ -386,7 +385,7 @@
             >
               <div class="flex justify-between items-start">
                 <div>
-                  <h3 class="font-medium text-lg">{project.project_name_th}</h3>
+                    <h3 class="font-medium text-lg text-blue-600 hover:underline cursor-pointer" on:click={() => goToProject_Details(project.id)}>{project.project_name_th}</h3>
                   <p class="text-gray-600 mt-1">
                     ภาคการศึกษา: {project.term || "ไม่ระบุ"}
                   </p>

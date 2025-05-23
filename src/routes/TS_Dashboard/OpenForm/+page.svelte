@@ -16,6 +16,7 @@
     import ConfirmModal from '$lib/components/ConfirmModal.svelte';
     import Modal from '$lib/components/Modal.svelte'; // Import the Modal component
     import { dangerToast } from "$lib/customtoast.js";
+    import Loading from "$lib/components/loading.svelte";
 
     let terms = [];
     let loading = true;
@@ -290,7 +291,7 @@
     </div>
   
     {#if loading}
-      <div class="text-center py-8 text-gray-500">กำลังโหลดข้อมูล...</div>
+      <Loading />
     {:else}
       <div class="grid gap-4">
         {#each terms as term}
